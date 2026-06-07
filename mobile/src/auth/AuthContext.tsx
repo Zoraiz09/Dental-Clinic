@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Profile } from '../types/models';
 import { getCurrentProfile, signInWithPassword, signOut } from '../api/auth';
+import { ProfileUpdate, updateMyProfile } from '../api/mutations';
 
 interface AuthState {
   profile: Profile | null;
   loading: boolean;
   signIn: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (patch: ProfileUpdate) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -38,6 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async logout() {
         await signOut();
         setProfile(null);
+      },
+      async updateProfile(patch) {
+        if (!profile) throw new Error('You are not signed in.');
+        const updated = await updateMyProfile(profile.id, patch);
+        setProfile(updated);
       },
     }),
     [profile, loading],

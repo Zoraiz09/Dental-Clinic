@@ -129,9 +129,11 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
-      {/* Ambient caramel light blobs for depth behind the frosted glass. */}
-      <View pointerEvents="none" style={{ position: 'absolute', top: -50, right: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(189,135,67,0.22)' }} />
-      <View pointerEvents="none" style={{ position: 'absolute', top: 150, left: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(128,83,31,0.13)' }} />
+      {/* Ambient caramel light blobs for depth behind the frosted glass.
+          zIndex -1 keeps them painted behind the content on web too (where an
+          absolutely-positioned sibling otherwise paints on top of in-flow content). */}
+      <View pointerEvents="none" style={{ position: 'absolute', zIndex: -1, top: -50, right: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(189,135,67,0.22)' }} />
+      <View pointerEvents="none" style={{ position: 'absolute', zIndex: -1, top: 150, left: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(128,83,31,0.13)' }} />
 
       <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
         {/* Header */}

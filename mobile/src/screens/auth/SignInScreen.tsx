@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,15 +51,15 @@ export default function SignInScreen({ navigation }: any) {
         <View className="absolute right-16 top-28 h-20 w-20 rounded-2xl border-2 border-white/30" />
 
         <View className="flex-1 px-6 justify-center">
-          {/* Brand */}
+          {/* Brand logo */}
           <Appear>
-            <View className="mb-8">
-              <Text className="text-4xl text-forest-700" style={{ lineHeight: 44, fontFamily: 'Nunito_800ExtraBold' }}>
-                {t('auth.title')}
-              </Text>
-              <Text className="mt-2 text-[11px] tracking-[2px] font-semibold text-forest-500 uppercase">
-                {t('auth.subtitle')}
-              </Text>
+            <View className="items-center mb-8">
+              <Image
+                source={require('../../../assets/logo-black-vertical.png')}
+                resizeMode="contain"
+                style={{ width: 180, height: 190 }}
+                accessibilityLabel={t('auth.title')}
+              />
             </View>
           </Appear>
 
@@ -72,11 +72,10 @@ export default function SignInScreen({ navigation }: any) {
             <Text className="text-xs font-semibold text-ink mb-2">{t('auth.identifier')}</Text>
             <View className="flex-row items-center bg-white/80 rounded-xl px-3 mb-4" style={{ borderWidth: 1, borderColor: colors.line }}>
               <Ionicons name="person-outline" size={18} color={colors.muted} />
-              <Text className="text-muted ml-2">+966</Text>
               <TextInput
                 value={identifier}
                 onChangeText={setIdentifier}
-                placeholder="5XXXXXXX"
+                placeholder="name@noor.dentofacial.clinic"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 keyboardType="email-address"

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { colors } from '../../theme/colors';
-import { Appear, Avatar, Card, H1, Pill } from '../../components/ui';
+import { Appear, Avatar, Card, H1, IconButton, Pill } from '../../components/ui';
 import { useAuth } from '../../auth/AuthContext';
 import { listAppointments, listProviders } from '../../api/queries';
 import { cancelAppointment, checkInAppointment, completeAppointment, completeVisitAndBill } from '../../api/mutations';
@@ -127,7 +127,14 @@ export default function ScheduleScreen({ navigation }: any) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
       <View className="flex-row items-center justify-between px-5 pt-2 pb-3">
-        <H1>Appointments</H1>
+        <View className="flex-row items-center flex-1">
+          {navigation.canGoBack?.() && (
+            <View className="mr-1 -ml-1">
+              <IconButton name="arrow-back" onPress={() => navigation.goBack()} />
+            </View>
+          )}
+          <H1>Appointments</H1>
+        </View>
         {canBill && (
           <Pressable onPress={() => navigation.navigate('BookAppointment')} className="flex-row items-center bg-forest-600 rounded-xl px-3 py-2 active:opacity-80">
             <Ionicons name="add" size={18} color="#fff" />

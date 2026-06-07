@@ -31,6 +31,7 @@ import ReportsScreen from '../screens/admin/ReportsScreen';
 import CreateStaffScreen from '../screens/admin/CreateStaffScreen';
 import StaffScreen from '../screens/admin/StaffScreen';
 import ExpensesScreen from '../screens/admin/ExpensesScreen';
+import ServicesScreen from '../screens/services/ServicesScreen';
 import { makePlaceholder } from '../screens/Placeholder';
 
 const QueueScreen = makePlaceholder('Queue', 'list-outline');
@@ -132,6 +133,7 @@ export default function RootNavigator() {
             <Stack.Screen name="CreateStaff" component={CreateStaffScreen} />
             <Stack.Screen name="Staff" component={StaffScreen} />
             <Stack.Screen name="Expenses" component={ExpensesScreen} />
+            <Stack.Screen name="Services" component={ServicesScreen} />
             <Stack.Screen name="Queue" component={QueueScreen} />
           </>
         )}

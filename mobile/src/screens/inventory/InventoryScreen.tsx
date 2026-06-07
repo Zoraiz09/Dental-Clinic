@@ -7,7 +7,7 @@ import { colors } from '../../theme/colors';
 import { Appear, Button, Card, H1, Pill } from '../../components/ui';
 import { rs } from '../../lib/format';
 import { listInventory } from '../../api/queries';
-import { adjustStock, createInventoryItem } from '../../api/mutations';
+import { adjustStock, createExpense, createInventoryItem } from '../../api/mutations';
 import { useAuth } from '../../auth/AuthContext';
 import { InventoryItem } from '../../types/models';
 
@@ -26,6 +26,7 @@ export default function InventoryScreen() {
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['inventory'] });
     qc.invalidateQueries({ queryKey: ['stockMovements'] });
+    qc.invalidateQueries({ queryKey: ['expenses'] });
   };
 
   return (
@@ -100,7 +101,18 @@ export default function InventoryScreen() {
 function AdjustSheet({ item, onClose, onDone }: { item: InventoryItem; onClose: () => void; onDone: () => void }) {
   const [qty, setQty] = useState('');
   const { mutate, isPending } = useMutation({
-    mutationFn: ({ type }: { type: 'ADD' | 'DEDUCT' }) => adjustStock(item.id, type, Number(qty)),
+    mutationFn: async ({ type }: { type: 'ADD' | 'DEDUCT' }) => {
+      const n = Number(qty);
+      await adjustStock(item.id, type, n);
+      // Restocking is a purchase — record it in the expense ledger.
+      if (type === 'ADD' && item.unit_cost > 0) {
+        await createExpense({
+          category: 'Inventory',
+          description: `Restock: ${item.name} (${n} ${item.unit} @ ${item.unit_cost})`,
+          amount: n * item.unit_cost,
+        });
+      }
+    },
     onSuccess: () => { onDone(); onClose(); },
     onError: (e: any) => Alert.alert('Error', e.message),
   });

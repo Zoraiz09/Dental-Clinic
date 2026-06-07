@@ -1,8 +1,9 @@
 // In-memory demo data powering MOCK mode (no Supabase creds yet).
 // Mirrors the seed in supabase/seed.sql and the UI mockups.
+import dayjs from 'dayjs';
 import {
   Appointment, AppointmentType, Bill, DoctorEarnings, EMR, Expense,
-  InventoryItem, Patient, Prescription, Profile, Provider, TimeSlot, UserRole,
+  InventoryItem, Patient, Prescription, Profile, Provider, Specialty, TimeSlot, UserRole,
 } from '../types/models';
 
 export const mockProviders: Provider[] = [
@@ -19,12 +20,108 @@ export const mockProfiles: (Profile & { password: string })[] = [
   { id: 'u-recep', full_name: 'Front Desk', email: 'reception@noor.clinic', phone: '+923007778899', role: 'RECEPTIONIST', avatar_url: null, is_active: true, password: 'password' },
 ];
 
+// Catalog extracted from the Noor Dentofacial Clinic price lists (Dental +
+// Aesthetic). For services priced as a range, the starting (lower) price is
+// seeded here — admins/receptionists can fine-tune any price in-app.
+// `consultation_fee` is the service price; bill total = consultation_fee + test_fee − discount.
+const apptType = (
+  id: string, name: string, specialty: Specialty, consultation_fee: number,
+  duration_minutes = 30, default_doctor_pct = 50,
+): AppointmentType => ({ id, name, specialty, duration_minutes, consultation_fee, test_fee: 0, default_doctor_pct, is_active: true });
+
 export const mockAppointmentTypes: AppointmentType[] = [
-  { id: 'at1', name: 'General Check-up', specialty: 'DENTAL', duration_minutes: 30, consultation_fee: 2000, test_fee: 0, default_doctor_pct: 40, is_active: true },
-  { id: 'at2', name: 'Tooth Extraction', specialty: 'DENTAL', duration_minutes: 45, consultation_fee: 5000, test_fee: 1000, default_doctor_pct: 50, is_active: true },
-  { id: 'at3', name: 'Scaling & Polishing', specialty: 'DENTAL', duration_minutes: 40, consultation_fee: 3500, test_fee: 0, default_doctor_pct: 45, is_active: true },
-  { id: 'at4', name: 'Botox Consultation', specialty: 'AESTHETIC', duration_minutes: 30, consultation_fee: 4000, test_fee: 0, default_doctor_pct: 50, is_active: true },
-  { id: 'at5', name: 'Dermal Fillers', specialty: 'AESTHETIC', duration_minutes: 60, consultation_fee: 15000, test_fee: 0, default_doctor_pct: 55, is_active: true },
+  // ---- Dental ----
+  apptType('at1', 'Consultation / Examination', 'DENTAL', 1000, 15),
+  apptType('at2', 'Dental Filling (GIC)', 'DENTAL', 3000),
+  apptType('at3', 'Composite Filling (Light Cure)', 'DENTAL', 6000),
+  apptType('at4', 'Amalgam Filling', 'DENTAL', 3500),
+  apptType('at5', 'RCT (Anterior Tooth)', 'DENTAL', 10000, 45),
+  apptType('at6', 'RCT (Premolar)', 'DENTAL', 12000, 45),
+  apptType('at7', 'RCT (Molar)', 'DENTAL', 15000, 60),
+  apptType('at8', 'Re-RCT', 'DENTAL', 12000, 60),
+  apptType('at9', 'Pulpotomy / Pulpectomy', 'DENTAL', 3500),
+  apptType('at10', 'Extraction (Normal)', 'DENTAL', 4000),
+  apptType('at11', 'Surgical Extraction', 'DENTAL', 10000, 45),
+  apptType('at12', 'Apicectomy', 'DENTAL', 15000, 60),
+  apptType('at13', 'Scaling & Polishing', 'DENTAL', 8000, 40),
+  apptType('at14', 'Deep Scaling / Root Planing', 'DENTAL', 10000, 45),
+  apptType('at15', 'Fluoride Varnish', 'DENTAL', 3000, 20),
+  apptType('at16', 'Functional Crown Lengthening', 'DENTAL', 10000, 45),
+  apptType('at17', 'Esthetic Crown Lengthening', 'DENTAL', 25000, 60),
+  apptType('at18', 'Free Graft', 'DENTAL', 30000, 60),
+  apptType('at19', 'PFM Crown', 'DENTAL', 12000, 45),
+  apptType('at20', 'Zirconia Crown', 'DENTAL', 25000, 45),
+  apptType('at21', 'E-max Crown', 'DENTAL', 28000, 45),
+  apptType('at22', 'Temporary Crown', 'DENTAL', 4000),
+  apptType('at23', 'Crown Cementation', 'DENTAL', 2500),
+  apptType('at24', 'Partial Acrylic Denture', 'DENTAL', 8000, 45),
+  apptType('at25', 'Flexible Denture', 'DENTAL', 15000, 45),
+  apptType('at26', 'Complete Denture', 'DENTAL', 35000, 60),
+  apptType('at27', 'Single Tooth Denture', 'DENTAL', 3500),
+  apptType('at28', 'Dental Implant', 'DENTAL', 70000, 60),
+  apptType('at29', 'Bone Graft (if required)', 'DENTAL', 20000, 60),
+  apptType('at30', 'Metal Braces', 'DENTAL', 120000, 60),
+  apptType('at31', 'Ceramic Braces', 'DENTAL', 150000, 60),
+  apptType('at32', 'Invisible Aligners', 'DENTAL', 200000, 60),
+  apptType('at33', 'Retainers', 'DENTAL', 5000),
+  apptType('at34', 'Teeth Whitening / Bleaching', 'DENTAL', 30000, 60),
+  apptType('at35', 'Veneers (per tooth)', 'DENTAL', 25000, 45),
+  apptType('at36', 'Night Guard', 'DENTAL', 6000),
+  apptType('at37', 'Dental Splint', 'DENTAL', 6000),
+  // ---- Aesthetic · Face ----
+  apptType('at38', 'Essential HydraFacial', 'AESTHETIC', 7000, 45),
+  apptType('at39', 'Galvanic HydraFacial', 'AESTHETIC', 8000, 45),
+  apptType('at40', 'Skin Renewal Hydrafacial', 'AESTHETIC', 8000, 60),
+  apptType('at41', 'Signature HydraFacial', 'AESTHETIC', 10000, 60),
+  apptType('at42', 'Vampire Facial (Microneedling + PRP)', 'AESTHETIC', 8000, 60),
+  apptType('at43', 'Microneedling & Mesotherapy', 'AESTHETIC', 10000, 60),
+  apptType('at44', 'Black Doll Facial (Carbon Peel)', 'AESTHETIC', 9000, 45),
+  apptType('at45', 'Freckles & Melasma Removal', 'AESTHETIC', 8000, 45),
+  apptType('at46', 'Tattoo Removal', 'AESTHETIC', 5000, 45),
+  apptType('at47', 'Chemical Peel (Full Face)', 'AESTHETIC', 9000, 45),
+  apptType('at48', 'Mole Removal', 'AESTHETIC', 2000),
+  apptType('at49', 'Botox (Full Face)', 'AESTHETIC', 25000, 45),
+  apptType('at50', 'Frown Lines', 'AESTHETIC', 20000),
+  apptType('at51', 'Gummy Smile', 'AESTHETIC', 18000),
+  apptType('at52', "Crow's Feet", 'AESTHETIC', 15000),
+  apptType('at53', 'Bunny Lines', 'AESTHETIC', 15000),
+  apptType('at54', 'Hyperhidrosis (Underarms)', 'AESTHETIC', 30000, 45),
+  apptType('at55', 'Mesotherapy', 'AESTHETIC', 8000, 45),
+  apptType('at56', 'Fat Dissolving Injections (Face)', 'AESTHETIC', 9000, 45),
+  apptType('at57', 'HIFU Full Face', 'AESTHETIC', 15000, 60),
+  apptType('at58', 'HIFU Double Chin', 'AESTHETIC', 15000, 45),
+  apptType('at59', 'HIFU Full Face + Double Chin', 'AESTHETIC', 25000, 60),
+  apptType('at60', 'Laser Hair Removal – Forehead', 'AESTHETIC', 2000, 20),
+  apptType('at61', 'Laser Hair Removal – Upper Lip', 'AESTHETIC', 1500, 20),
+  apptType('at62', 'Laser Hair Removal – Chin & Jawline', 'AESTHETIC', 2500, 20),
+  apptType('at63', 'Laser Hair Removal – Full Face', 'AESTHETIC', 5500, 30),
+  // ---- Aesthetic · Hair & Body ----
+  apptType('at64', 'Hair PRP', 'AESTHETIC', 6000, 45),
+  apptType('at65', 'Mesotherapy Hair Booster', 'AESTHETIC', 8000, 45),
+  apptType('at66', 'PDO Threads (Hair)', 'AESTHETIC', 18000, 60),
+  apptType('at67', 'PDO Threads (Skin)', 'AESTHETIC', 18000, 60),
+  apptType('at68', 'Chemical Peel (Knuckles)', 'AESTHETIC', 3000, 30),
+  apptType('at69', 'Chemical Peel (Neck)', 'AESTHETIC', 5000, 30),
+  apptType('at70', 'Chemical Peel (Hands)', 'AESTHETIC', 5000, 30),
+  apptType('at71', 'Chemical Peel (Feet)', 'AESTHETIC', 5000, 30),
+  apptType('at72', 'Carbon Peel (Hands/Feet)', 'AESTHETIC', 5000, 30),
+  apptType('at73', 'Lightening Cocktail (IV Drip)', 'AESTHETIC', 9000, 45),
+  apptType('at74', 'Slimming Cocktail (IV Drip)', 'AESTHETIC', 10000, 45),
+  apptType('at75', 'Vitamin Immune Cocktail (IV Drip)', 'AESTHETIC', 12000, 45),
+  apptType('at76', 'HIFU Upper Arms', 'AESTHETIC', 15000, 45),
+  apptType('at77', 'HIFU Thighs', 'AESTHETIC', 20000, 60),
+  apptType('at78', 'HIFU Tummy', 'AESTHETIC', 25000, 60),
+  apptType('at79', 'Laser Hair Removal – Armpits', 'AESTHETIC', 4500, 30),
+  apptType('at80', 'Laser Hair Removal – Lower Arm', 'AESTHETIC', 3500, 30),
+  apptType('at81', 'Laser Hair Removal – Upper Arm', 'AESTHETIC', 3500, 30),
+  apptType('at82', 'Laser Hair Removal – Full Arms', 'AESTHETIC', 6000, 45),
+  apptType('at83', 'Laser Hair Removal – Lower Legs', 'AESTHETIC', 4500, 30),
+  apptType('at84', 'Laser Hair Removal – Thighs', 'AESTHETIC', 4500, 30),
+  apptType('at85', 'Laser Hair Removal – Full Legs', 'AESTHETIC', 8000, 45),
+  apptType('at86', 'Laser Hair Removal – Tummy Area', 'AESTHETIC', 5000, 30),
+  apptType('at87', 'Laser Hair Removal – Full Back', 'AESTHETIC', 7000, 45),
+  apptType('at88', 'Laser Hair Removal – Half Body', 'AESTHETIC', 12000, 60),
+  apptType('at89', 'Laser Hair Removal – Full Body', 'AESTHETIC', 25000, 90),
 ];
 
 export const mockPatients: Patient[] = [
@@ -34,7 +131,14 @@ export const mockPatients: Patient[] = [
   { id: 'p4', mrn: 'NDC-0004', full_name: 'James Whitfield', phone: '+923009990011', email: null, gender: 'Male', date_of_birth: '1972-11-03', address: 'Johar Town, Lahore', photo_url: null, notes: '', created_at: '2026-06-01T11:15:00Z' },
 ];
 
-const today = '2026-06-05';
+// Anchor demo data to the real current day so "Today's schedule" and
+// today-based KPIs always populate (was hardcoded, which left them empty
+// on any other date).
+const today = dayjs().format('YYYY-MM-DD');
+// Timestamp `n` days before now, at the given hour — keeps the "past week"
+// earnings/expense demo data rolling with the real date.
+const daysAgo = (n: number, hour = 10) =>
+  dayjs().subtract(n, 'day').hour(hour).minute(0).second(0).millisecond(0).toISOString();
 export const mockTimeSlots: TimeSlot[] = [
   { id: 's1', provider_id: 'pv1', starts_at: `${today}T09:00:00Z`, ends_at: `${today}T09:30:00Z`, is_available: true },
   { id: 's2', provider_id: 'pv1', starts_at: `${today}T09:30:00Z`, ends_at: `${today}T10:00:00Z`, is_available: true },
@@ -55,10 +159,10 @@ export const mockBills: Bill[] = [
   { id: 'b2', invoice_no: 'INV-1002', patient_id: 'p2', appointment_id: 'a2', provider_id: 'pv3', consultation_fee: 2000, test_fee: 0, discount: 0, total_amount: 2000, doctor_share: 800, clinic_share: 1200, amount_paid: 0, status: 'PENDING', created_at: `${today}T11:00:00Z`, patient: mockPatients[1] },
   { id: 'b3', invoice_no: 'INV-1003', patient_id: 'p3', appointment_id: null, provider_id: 'pv1', consultation_fee: 15000, test_fee: 0, discount: 1000, total_amount: 14000, doctor_share: 7700, clinic_share: 6300, amount_paid: 14000, status: 'PAID', created_at: `${today}T12:30:00Z`, patient: mockPatients[2] },
   // More Dr. Jenkins (pv3) bills across the past week → richer earnings chart.
-  { id: 'b4', invoice_no: 'INV-0995', patient_id: 'p4', appointment_id: null, provider_id: 'pv3', consultation_fee: 3500, test_fee: 0, discount: 0, total_amount: 3500, doctor_share: 1575, clinic_share: 1925, amount_paid: 3500, status: 'PAID', created_at: '2026-06-04T11:00:00Z', patient: mockPatients[3] },
-  { id: 'b5', invoice_no: 'INV-0990', patient_id: 'p1', appointment_id: null, provider_id: 'pv3', consultation_fee: 5000, test_fee: 1000, discount: 0, total_amount: 6000, doctor_share: 3000, clinic_share: 3000, amount_paid: 6000, status: 'PAID', created_at: '2026-06-03T09:30:00Z', patient: mockPatients[0] },
-  { id: 'b6', invoice_no: 'INV-0985', patient_id: 'p2', appointment_id: null, provider_id: 'pv3', consultation_fee: 2000, test_fee: 0, discount: 0, total_amount: 2000, doctor_share: 800, clinic_share: 1200, amount_paid: 0, status: 'PENDING', created_at: '2026-06-02T15:00:00Z', patient: mockPatients[1] },
-  { id: 'b7', invoice_no: 'INV-0980', patient_id: 'p3', appointment_id: null, provider_id: 'pv3', consultation_fee: 3500, test_fee: 500, discount: 0, total_amount: 4000, doctor_share: 1800, clinic_share: 2200, amount_paid: 4000, status: 'PAID', created_at: '2026-06-01T13:15:00Z', patient: mockPatients[2] },
+  { id: 'b4', invoice_no: 'INV-0995', patient_id: 'p4', appointment_id: null, provider_id: 'pv3', consultation_fee: 3500, test_fee: 0, discount: 0, total_amount: 3500, doctor_share: 1575, clinic_share: 1925, amount_paid: 3500, status: 'PAID', created_at: daysAgo(1, 11), patient: mockPatients[3] },
+  { id: 'b5', invoice_no: 'INV-0990', patient_id: 'p1', appointment_id: null, provider_id: 'pv3', consultation_fee: 5000, test_fee: 1000, discount: 0, total_amount: 6000, doctor_share: 3000, clinic_share: 3000, amount_paid: 6000, status: 'PAID', created_at: daysAgo(2, 9), patient: mockPatients[0] },
+  { id: 'b6', invoice_no: 'INV-0985', patient_id: 'p2', appointment_id: null, provider_id: 'pv3', consultation_fee: 2000, test_fee: 0, discount: 0, total_amount: 2000, doctor_share: 800, clinic_share: 1200, amount_paid: 0, status: 'PENDING', created_at: daysAgo(4, 15), patient: mockPatients[1] },
+  { id: 'b7', invoice_no: 'INV-0980', patient_id: 'p3', appointment_id: null, provider_id: 'pv3', consultation_fee: 3500, test_fee: 500, discount: 0, total_amount: 4000, doctor_share: 1800, clinic_share: 2200, amount_paid: 4000, status: 'PAID', created_at: daysAgo(6, 13), patient: mockPatients[2] },
 ];
 
 export const mockInventory: InventoryItem[] = [
@@ -70,8 +174,8 @@ export const mockInventory: InventoryItem[] = [
 ];
 
 export const mockExpenses: Expense[] = [
-  { id: 'e1', category: 'Utilities', description: 'Electricity bill — May', amount: 45000, receipt_url: null, spent_at: '2026-06-02' },
-  { id: 'e2', category: 'Supplies', description: 'Sterilization pouches', amount: 8500, receipt_url: null, spent_at: '2026-06-03' },
+  { id: 'e1', category: 'Utilities', description: 'Electricity bill', amount: 45000, receipt_url: null, spent_at: daysAgo(4).slice(0, 10), created_at: daysAgo(4, 10) },
+  { id: 'e2', category: 'Supplies', description: 'Sterilization pouches', amount: 8500, receipt_url: null, spent_at: daysAgo(3).slice(0, 10), created_at: daysAgo(3, 14) },
 ];
 
 export const mockStockMovements: { id: string; item_id: string; type: 'ADD' | 'DEDUCT' | 'ADJUST'; quantity: number; created_at: string }[] = [];

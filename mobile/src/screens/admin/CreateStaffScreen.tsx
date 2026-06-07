@@ -1,7 +1,8 @@
 ﻿import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { colors } from '../../theme/colors';
 import { Avatar, Button, Card, IconButton, Pill } from '../../components/ui';
@@ -17,13 +18,37 @@ export default function CreateStaffScreen({ route, navigation }: any) {
   const [specialty, setSpecialty] = useState<Specialty>('DENTAL');
   const [employment, setEmployment] = useState<EmploymentType>('IN_HOUSE');
   const [share, setShare] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
+
+  const pickImage = async (camera: boolean) => {
+    const perm = camera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', `Please allow ${camera ? 'camera' : 'photo'} access.`);
+      return;
+    }
+    const res = camera
+      ? await ImagePicker.launchCameraAsync({ quality: 0.6, allowsEditing: true, aspect: [1, 1] })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.6, allowsEditing: true, aspect: [1, 1] });
+    if (!res.canceled) setPhoto(res.assets[0].uri);
+  };
+
+  const photoSheet = () =>
+    Alert.alert('Staff photo (optional)', undefined, [
+      { text: 'Take photo', onPress: () => pickImage(true) },
+      { text: 'Choose from gallery', onPress: () => pickImage(false) },
+      ...(photo ? [{ text: 'Remove photo', style: 'destructive' as const, onPress: () => setPhoto(null) }] : []),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
 
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: listStaff });
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => createStaff({
       full_name: f.full_name, email: f.email, phone: f.phone, password: f.password, role,
+      avatar_url: photo ?? undefined,
       title: f.title || undefined,
       specialty: role === 'DOCTOR' ? specialty : null,
       employment_type: role === 'DOCTOR' ? employment : undefined,
@@ -35,6 +60,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
       Alert.alert('Account created', `${role === 'DOCTOR' ? 'Doctor' : 'Receptionist'} can now sign in with the email & password you set.`);
       setF({ full_name: '', email: '', phone: '', password: '', title: '' });
       setShare('');
+      setPhoto(null);
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
@@ -61,6 +87,23 @@ export default function CreateStaffScreen({ route, navigation }: any) {
               </Pressable>
             );
           })}
+        </View>
+
+        {/* Photo (optional) */}
+        <View className="items-center mb-4">
+          <Pressable onPress={photoSheet} className="active:opacity-80">
+            {photo ? (
+              <Image source={{ uri: photo }} style={{ width: 92, height: 92, borderRadius: 46 }} />
+            ) : (
+              <View className="rounded-full bg-forest-50 items-center justify-center" style={{ width: 92, height: 92 }}>
+                <Ionicons name="camera-outline" size={28} color={colors.forest[500]} />
+              </View>
+            )}
+            <View className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-forest-600 items-center justify-center border-2 border-cream">
+              <Ionicons name={photo ? 'pencil' : 'add'} size={14} color="#fff" />
+            </View>
+          </Pressable>
+          <Text className="text-[11px] text-muted mt-2">Photo (optional)</Text>
         </View>
 
         <Input label="Full name" value={f.full_name} onChangeText={(v: string) => set('full_name', v)} placeholder="Dr. Jane Doe" />
@@ -116,7 +159,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
         <Text className="text-lg font-bold text-ink mt-7 mb-3">Current staff</Text>
         {staff.map((s) => (
           <Card key={s.id} className="flex-row items-center mb-3">
-            <Avatar name={s.full_name} size={40} />
+            <Avatar name={s.full_name} size={40} uri={s.avatar_url} />
             <View className="flex-1 ml-3">
               <Text className="font-semibold text-ink">{s.full_name}</Text>
               <Text className="text-xs text-muted">{s.email}</Text>

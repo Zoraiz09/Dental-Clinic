@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import {
-  ActivityIndicator, Pressable, PressableProps, StyleSheet, Text, View, ViewProps,
+  ActivityIndicator, Image, Pressable, PressableProps, StyleSheet, Text, View, ViewProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -179,8 +179,11 @@ export function Pill({ label, tone = 'neutral' }: { label: string; tone?: Tone }
 }
 
 // --- Avatar -----------------------------------------------------------
-export function Avatar({ name, size = 40 }: { name?: string; size?: number; uri?: string | null }) {
+export function Avatar({ name, size = 40, uri }: { name?: string; size?: number; uri?: string | null }) {
   const initials = (name ?? '?').split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
+  if (uri) {
+    return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  }
   return (
     <View className="items-center justify-center rounded-full bg-forest-200" style={{ width: size, height: size }}>
       <Text className="text-forest-700 font-bold" style={{ fontSize: size * 0.36 }}>{initials}</Text>

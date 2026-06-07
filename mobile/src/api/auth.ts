@@ -80,4 +80,30 @@ export async function sendPasswordReset(email: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Change the signed-in user's password. The current password is verified
+ * first: in mock by comparing the stored value, in live by re-authenticating
+ * (Supabase's updateUser does not check the old password on its own).
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  if (isMock) {
+    const user = mockProfiles.find((p) => p.id === mockCurrentUserId);
+    if (!user) throw new Error('You are not signed in.');
+    if (currentPassword !== (user.password ?? 'password')) {
+      throw new Error('Current password is incorrect.');
+    }
+    user.password = newPassword;
+    return;
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const email = user?.email;
+  if (!email) throw new Error('You are not signed in.');
+  // Verify the current password by re-authenticating.
+  const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+  if (signInErr) throw new Error('Current password is incorrect.');
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 export { MOCK_KEY };

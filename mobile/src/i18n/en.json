@@ -5,7 +5,7 @@
     "subtitle": "Staff Management & EMR Portal",
     "signIn": "Sign In",
     "authenticate": "Please authenticate to access patient records",
-    "identifier": "Phone Number or Username",
+    "identifier": "Email or Username",
     "password": "Password",
     "forgot": "Forgot Password?",
     "remember": "Remember Me",

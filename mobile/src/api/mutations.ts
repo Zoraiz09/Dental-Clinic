@@ -1,6 +1,6 @@
 import { supabase, isMock, createAuthOnlyClient } from '../lib/supabase';
 import {
-  Appointment, Bill, EMR, EmploymentType, Expense, InventoryItem, Prescription, PrescriptionType,
+  Appointment, AppointmentType, Bill, EMR, EmploymentType, Expense, InventoryItem, Prescription, PrescriptionType,
   Profile, RxItem, Specialty, StockMovementType, ToothChart, UserRole,
 } from '../types/models';
 import {
@@ -272,8 +272,10 @@ export async function recordPayment(billId: string, amount: number, method = 'ca
 // --- Inventory (admin) ------------------------------------------------
 export async function createInventoryItem(input: Partial<InventoryItem>): Promise<InventoryItem> {
   const initialQty = input.quantity ?? 0;
+  const unitCost = input.unit_cost ?? 0;
+  let item: InventoryItem;
   if (isMock) {
-    const item: InventoryItem = {
+    item = {
       id: nextId('i'),
       name: input.name ?? 'New item',
       sku: input.sku ?? null,
@@ -285,17 +287,27 @@ export async function createInventoryItem(input: Partial<InventoryItem>): Promis
     };
     mockInventory.unshift(item);
     if (initialQty > 0) await adjustStock(item.id, 'ADD', initialQty, 'Initial stock');
-    return item;
+  } else {
+    // Insert at 0, then book the opening stock as an ADD movement so the
+    // purchase cost is recorded (the DB trigger raises quantity to initialQty).
+    const { data, error } = await supabase
+      .from('inventory_items')
+      .insert({ ...input, quantity: 0 })
+      .select().single();
+    if (error) throw error;
+    item = data as InventoryItem;
+    if (initialQty > 0) await adjustStock(item.id, 'ADD', initialQty, 'Initial stock');
   }
-  // Insert at 0, then book the opening stock as an ADD movement so the
-  // purchase cost is recorded (the DB trigger raises quantity to initialQty).
-  const { data, error } = await supabase
-    .from('inventory_items')
-    .insert({ ...input, quantity: 0 })
-    .select().single();
-  if (error) throw error;
-  if (initialQty > 0) await adjustStock((data as InventoryItem).id, 'ADD', initialQty, 'Initial stock');
-  return data as InventoryItem;
+
+  // Record the opening purchase in the expense ledger.
+  if (initialQty > 0 && unitCost > 0) {
+    await createExpense({
+      category: 'Inventory',
+      description: `Inventory: ${item.name} (${initialQty} ${item.unit} @ ${unitCost})`,
+      amount: initialQty * unitCost,
+    });
+  }
+  return item;
 }
 
 export async function adjustStock(itemId: string, type: StockMovementType, quantity: number, reason?: string): Promise<void> {
@@ -320,6 +332,7 @@ export async function createExpense(input: Partial<Expense>): Promise<Expense> {
       amount: input.amount ?? 0,
       receipt_url: input.receipt_url ?? null,
       spent_at: input.spent_at ?? new Date().toISOString().slice(0, 10),
+      created_at: input.created_at ?? new Date().toISOString(),
     };
     mockExpenses.unshift(e);
     return e;
@@ -329,6 +342,67 @@ export async function createExpense(input: Partial<Expense>): Promise<Expense> {
   return data as Expense;
 }
 
+// --- Appointment types / services & prices (admin + receptionist) ------
+export interface AppointmentTypeInput {
+  name: string;
+  specialty: Specialty | null;
+  consultation_fee: number;
+  test_fee?: number;
+  duration_minutes?: number;
+  default_doctor_pct?: number;
+}
+
+export async function createAppointmentType(input: AppointmentTypeInput): Promise<AppointmentType> {
+  if (isMock) {
+    const t: AppointmentType = {
+      id: nextId('at'),
+      name: input.name,
+      specialty: input.specialty,
+      duration_minutes: input.duration_minutes ?? 30,
+      consultation_fee: input.consultation_fee,
+      test_fee: input.test_fee ?? 0,
+      default_doctor_pct: input.default_doctor_pct ?? 50,
+      is_active: true,
+    };
+    mockAppointmentTypes.push(t);
+    return t;
+  }
+  const { data, error } = await supabase.from('appointment_types').insert({
+    name: input.name,
+    specialty: input.specialty,
+    duration_minutes: input.duration_minutes ?? 30,
+    consultation_fee: input.consultation_fee,
+    test_fee: input.test_fee ?? 0,
+    default_doctor_pct: input.default_doctor_pct ?? 50,
+  }).select().single();
+  if (error) throw error;
+  return data as AppointmentType;
+}
+
+export async function updateAppointmentType(id: string, patch: Partial<AppointmentTypeInput>): Promise<AppointmentType> {
+  if (isMock) {
+    const t = mockAppointmentTypes.find((x) => x.id === id);
+    if (!t) throw new Error('Service not found');
+    Object.assign(t, patch);
+    return t;
+  }
+  const { data, error } = await supabase.from('appointment_types').update(patch).eq('id', id).select().single();
+  if (error) throw error;
+  return data as AppointmentType;
+}
+
+// Soft-delete: hide the service from the catalog while keeping past
+// appointments/bills that referenced it intact (FK is ON DELETE SET NULL).
+export async function deleteAppointmentType(id: string): Promise<void> {
+  if (isMock) {
+    const t = mockAppointmentTypes.find((x) => x.id === id);
+    if (t) t.is_active = false;
+    return;
+  }
+  const { error } = await supabase.from('appointment_types').update({ is_active: false }).eq('id', id);
+  if (error) throw error;
+}
+
 // --- Staff (admin) ----------------------------------------------------
 export interface StaffInput {
   full_name: string;
@@ -336,6 +410,7 @@ export interface StaffInput {
   phone?: string;
   role: UserRole;
   password: string;
+  avatar_url?: string | null;         // optional staff photo
   // Doctor-only:
   specialty?: Specialty | null;
   employment_type?: EmploymentType;   // IN_HOUSE | VISITING
@@ -347,14 +422,14 @@ export async function createStaff(input: StaffInput): Promise<Profile> {
   if (isMock) {
     const p = {
       id: nextId('u'), full_name: input.full_name, email: input.email.toLowerCase(),
-      phone: input.phone ?? null, role: input.role, avatar_url: null, is_active: true, password: input.password,
+      phone: input.phone ?? null, role: input.role, avatar_url: input.avatar_url ?? null, is_active: true, password: input.password,
     };
     mockProfiles.push(p);
     if (input.role === 'DOCTOR') {
       mockProviders.push({
         id: nextId('pv'), profile_id: p.id, full_name: input.full_name,
         title: input.title ?? (input.employment_type === 'VISITING' ? 'Visiting Doctor' : 'In-house Doctor'),
-        specialty: input.specialty ?? null, is_primary: false, avatar_url: null, is_active: true,
+        specialty: input.specialty ?? null, is_primary: false, avatar_url: input.avatar_url ?? null, is_active: true,
         employment_type: input.employment_type ?? 'IN_HOUSE', default_share_pct: input.share_pct ?? 0,
       });
     }
@@ -378,6 +453,7 @@ export async function createStaff(input: StaffInput): Promise<Profile> {
   // Ensure the profile reflects the chosen role/name (admin RLS permits).
   await supabase.from('profiles').update({
     role: input.role, full_name: input.full_name, phone: input.phone ?? null,
+    avatar_url: input.avatar_url ?? null,
   }).eq('id', userId);
 
   if (input.role === 'DOCTOR') {
@@ -389,13 +465,53 @@ export async function createStaff(input: StaffInput): Promise<Profile> {
       employment_type: input.employment_type ?? 'IN_HOUSE',
       default_share_pct: input.share_pct ?? 0,
       is_primary: false,
+      avatar_url: input.avatar_url ?? null,
     });
   }
 
   return {
     id: userId, full_name: input.full_name, email: input.email.toLowerCase(),
-    phone: input.phone ?? null, role: input.role, avatar_url: null, is_active: true,
+    phone: input.phone ?? null, role: input.role, avatar_url: input.avatar_url ?? null, is_active: true,
   };
+}
+
+/**
+ * Update the signed-in user's own profile (any role). Edits name/phone/photo;
+ * email & role are intentionally not changeable here. For doctors, the linked
+ * provider row is kept in sync so the booking directory shows the new name/photo.
+ */
+export interface ProfileUpdate {
+  full_name?: string;
+  phone?: string | null;
+  avatar_url?: string | null;
+}
+
+export async function updateMyProfile(userId: string, patch: ProfileUpdate): Promise<Profile> {
+  if (isMock) {
+    const p = mockProfiles.find((x) => x.id === userId);
+    if (!p) throw new Error('Profile not found.');
+    Object.assign(p, patch);
+    mockProviders.forEach((pv) => {
+      if (pv.profile_id === userId) {
+        if (patch.full_name !== undefined) pv.full_name = patch.full_name;
+        if (patch.avatar_url !== undefined) pv.avatar_url = patch.avatar_url;
+      }
+    });
+    const { password: _pw, ...profile } = p;
+    return profile;
+  }
+
+  const { data, error } = await supabase.from('profiles').update(patch).eq('id', userId).select().single();
+  if (error) throw error;
+
+  // Keep the doctor's provider row in sync (no-op for non-doctors).
+  const provPatch: Partial<{ full_name: string; avatar_url: string | null }> = {};
+  if (patch.full_name !== undefined) provPatch.full_name = patch.full_name;
+  if (patch.avatar_url !== undefined) provPatch.avatar_url = patch.avatar_url;
+  if (Object.keys(provPatch).length) {
+    await supabase.from('providers').update(provPatch).eq('profile_id', userId);
+  }
+  return data as Profile;
 }
 
 /** Enable/disable a staff member's access (reversible). */

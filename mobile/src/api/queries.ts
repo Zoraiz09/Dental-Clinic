@@ -114,7 +114,7 @@ export async function listAppointments(): Promise<Appointment[]> {
 }
 
 export async function listAppointmentTypes(): Promise<AppointmentType[]> {
-  if (isMock) return mockAppointmentTypes;
+  if (isMock) return mockAppointmentTypes.filter((t) => t.is_active);
   const { data, error } = await supabase.from('appointment_types').select('*').eq('is_active', true);
   if (error) throw error;
   return data as AppointmentType[];
@@ -196,7 +196,7 @@ export async function listStockMovements(): Promise<StockMovement[]> {
 // --- Expenses ---------------------------------------------------------
 export async function listExpenses(): Promise<Expense[]> {
   if (isMock) return mockExpenses;
-  const { data, error } = await supabase.from('expenses').select('*').order('spent_at', { ascending: false });
+  const { data, error } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return data as Expense[];
 }

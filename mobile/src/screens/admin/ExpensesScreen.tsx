@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { colors } from '../../theme/colors';
 import { Button, Card, GradientCard, IconButton, Pill } from '../../components/ui';
-import { rs, shortDate } from '../../lib/format';
+import { rs, dateTimeStamp } from '../../lib/format';
 import { listExpenses } from '../../api/queries';
 import { createExpense } from '../../api/mutations';
 import { Field, Sheet } from '../inventory/InventoryScreen';
@@ -76,7 +76,7 @@ export default function ExpensesScreen({ navigation }: any) {
             </View>
             <View className="flex-1 ml-3">
               <Text className="font-semibold text-ink">{item.description}</Text>
-              <Text className="text-xs text-muted mt-0.5">{shortDate(item.spent_at)}</Text>
+              <Text className="text-xs text-muted mt-0.5">{dateTimeStamp(item.created_at ?? item.spent_at)}</Text>
             </View>
             {item.category ? <Pill label={item.category} tone="neutral" /> : null}
             <Text className="font-bold text-ink ml-3">{rs(item.amount)}</Text>

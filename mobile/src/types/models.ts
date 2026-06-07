@@ -167,6 +167,7 @@ export interface Expense {
   amount: number;
   receipt_url: string | null;
   spent_at: string;
+  created_at?: string;   // full timestamp (date + time) the entry was recorded
 }
 
 export interface DoctorEarnings {
