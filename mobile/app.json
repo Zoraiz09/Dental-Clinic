@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Noor Dentofacial",
+    "slug": "noor-dentofacial",
+    "scheme": "noorclinic",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "clinic.noor.dentofacial",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Capture patient photos and scan inventory barcodes.",
+        "NSPhotoLibraryUsageDescription": "Attach patient photos and expense receipts.",
+        "NSFaceIDUsageDescription": "Unlock the app securely with Face ID."
+      }
+    },
+    "android": {
+      "package": "clinic.noor.dentofacial",
+      "adaptiveIcon": {
+        "backgroundColor": "#1B4332",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-localization",
+      "expo-font",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-local-authentication",
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1B4332",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180
+        }
+      ]
+    ],
+    "extra": {
+      "supabaseUrl": "",
+      "supabaseAnonKey": ""
+    }
+  }
+}

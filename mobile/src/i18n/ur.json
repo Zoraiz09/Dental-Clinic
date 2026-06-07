@@ -1,0 +1,47 @@
+{
+  "app": { "name": "نور ڈینٹو فیشل" },
+  "auth": {
+    "title": "نور ڈینٹو فیشل کلینک",
+    "subtitle": "اسٹاف مینجمنٹ اور ای ایم آر پورٹل",
+    "signIn": "سائن ان",
+    "authenticate": "مریض کے ریکارڈ تک رسائی کے لیے تصدیق کریں",
+    "identifier": "فون نمبر یا یوزر نیم",
+    "password": "پاس ورڈ",
+    "forgot": "پاس ورڈ بھول گئے؟",
+    "remember": "مجھے یاد رکھیں",
+    "secure": "محفوظ ای ایم آر رسائی · مکمل خفیہ کاری",
+    "demoHint": "ڈیمو: admin@noor.clinic · password"
+  },
+  "tabs": {
+    "home": "ہوم", "patients": "مریض", "schedule": "شیڈول",
+    "settings": "ترتیبات", "queue": "قطار", "charting": "چارٹنگ",
+    "rx": "نسخہ", "earnings": "آمدنی", "appointments": "اپائنٹمنٹس",
+    "billing": "بلنگ", "inventory": "انوینٹری", "reports": "رپورٹس", "more": "مزید"
+  },
+  "home": {
+    "greeting": "صبح بخیر، {{name}}",
+    "subtitle": "آپ کے آگے {{count}} طبی طریقہ کار کے ساتھ مصروف صبح ہے۔",
+    "nextPatient": "اگلا مریض",
+    "viewSchedule": "شیڈول دیکھیں",
+    "startSession": "سیشن شروع کریں",
+    "reviewFiles": "فائلیں دیکھیں",
+    "taskList": "ٹاسک لسٹ",
+    "addNew": "نیا شامل کریں",
+    "inMinutes": "{{count}} منٹ میں"
+  },
+  "appointments": {
+    "book": "اپائنٹمنٹ بُک کریں",
+    "selectDate": "تاریخ منتخب کریں",
+    "type": "اپائنٹمنٹ کی قسم",
+    "availableSlots": "دستیاب اوقات",
+    "slotHeld": "وقت عارضی طور پر مختص",
+    "assignDoctor": "ڈاکٹر مقرر کریں",
+    "confirm": "تصدیق اور شیڈول بُک کریں",
+    "primary": "پرائمری"
+  },
+  "common": {
+    "search": "تلاش", "save": "محفوظ کریں", "cancel": "منسوخ", "loading": "لوڈ ہو رہا ہے…",
+    "retry": "دوبارہ کوشش", "today": "آج", "rs": "روپے", "logout": "لاگ آؤٹ",
+    "language": "زبان", "biometric": "بایومیٹرک انلاک"
+  }
+}

@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Secrets / local env (keep .env.example)
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+
+# Expo / build artifacts
+.expo/
+**/.expo/
+dist/
+**/dist/
+web-build/
+*.tsbuildinfo
+.expo-export-check/
+
+# Native
+ios/
+android/
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.orig.*
+
+# Generated QR / temp
+mobile/qr-expo.png

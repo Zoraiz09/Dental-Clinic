@@ -1,0 +1,47 @@
+{
+  "app": { "name": "Noor Dentofacial" },
+  "auth": {
+    "title": "Noor Dentofacial Clinic",
+    "subtitle": "Staff Management & EMR Portal",
+    "signIn": "Sign In",
+    "authenticate": "Please authenticate to access patient records",
+    "identifier": "Phone Number or Username",
+    "password": "Password",
+    "forgot": "Forgot Password?",
+    "remember": "Remember Me",
+    "secure": "Secure EMR Access · End-to-End Encrypted",
+    "demoHint": "Demo: admin@noor.clinic / doctor@noor.clinic / reception@noor.clinic · password"
+  },
+  "tabs": {
+    "home": "Home", "patients": "Patients", "schedule": "Schedule",
+    "settings": "Settings", "queue": "Queue", "charting": "Charting",
+    "rx": "Rx", "earnings": "Earnings", "appointments": "Appointments",
+    "billing": "Billing", "inventory": "Inventory", "reports": "Reports", "more": "More"
+  },
+  "home": {
+    "greeting": "Good morning, {{name}}",
+    "subtitle": "You have a busy morning ahead with {{count}} clinical procedures.",
+    "nextPatient": "Next Patient",
+    "viewSchedule": "View Schedule",
+    "startSession": "Start Session",
+    "reviewFiles": "Review Files",
+    "taskList": "Task List",
+    "addNew": "Add New",
+    "inMinutes": "IN {{count}} MINS"
+  },
+  "appointments": {
+    "book": "Book Appointment",
+    "selectDate": "Select Date",
+    "type": "Appointment Type",
+    "availableSlots": "Available Slots",
+    "slotHeld": "Slot held temporarily",
+    "assignDoctor": "Assign Doctor",
+    "confirm": "Confirm & Book Schedule",
+    "primary": "PRIMARY"
+  },
+  "common": {
+    "search": "Search", "save": "Save", "cancel": "Cancel", "loading": "Loading…",
+    "retry": "Retry", "today": "Today", "rs": "Rs", "logout": "Log out",
+    "language": "Language", "biometric": "Biometric Unlock"
+  }
+}
