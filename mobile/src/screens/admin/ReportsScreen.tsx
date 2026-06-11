@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,62 +6,37 @@ import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { colors } from '../../theme/colors';
 import { Card, GradientCard, H1, Muted } from '../../components/ui';
-import { rs, shortDate } from '../../lib/format';
-import { listBills, listExpenses, listProviders, listStockMovements } from '../../api/queries';
-
-const NOW = dayjs();
-const sameDay = (d: string) => dayjs(d).isSame(NOW, 'day');
+import { shadows } from '../../theme/elevation';
+import { rs } from '../../lib/format';
+import { getDashboardKpis, getOutstandingByPatient, getProviderShares, getTrendSeries } from '../../api/queries';
+import { qk } from '../../lib/queryKeys';
+import { useIsDesktop } from '../../lib/responsive';
+import { clinicNow } from '../../lib/selectors';
 
 export default function ReportsScreen({ navigation }: any) {
-  const { data: bills = [] } = useQuery({ queryKey: ['bills'], queryFn: listBills });
-  const { data: expenses = [] } = useQuery({ queryKey: ['expenses'], queryFn: listExpenses });
-  const { data: providers = [] } = useQuery({ queryKey: ['providers'], queryFn: listProviders });
-  const { data: movements = [] } = useQuery({ queryKey: ['stockMovements'], queryFn: listStockMovements });
+  // Website-only layout tweaks (wide browser windows); phones are untouched.
+  const isDesktop = useIsDesktop();
+  // All numbers are aggregated in the database (migration 0013) — this screen
+  // no longer downloads the bills/expenses/stock tables to add them up here.
+  const dayKey = clinicNow().format('YYYY-MM-DD');
+  const { data: kpis } = useQuery({ queryKey: qk.dashboardKpis(dayKey), queryFn: getDashboardKpis });
+  const { data: trend = [] } = useQuery({ queryKey: qk.trends('day'), queryFn: () => getTrendSeries('day', 7) });
+  const { data: byProvider = [] } = useQuery({ queryKey: qk.providerShares(), queryFn: getProviderShares });
+  const { data: outstandingPatients = [] } = useQuery({ queryKey: qk.outstanding(), queryFn: getOutstandingByPatient });
 
   const [modal, setModal] = useState<null | 'revenue' | 'outstanding'>(null);
 
-  const active = bills.filter((b) => b.status !== 'CANCELLED');
-  const checkupEarnings = active.filter((b) => sameDay(b.created_at)).reduce((s, b) => s + b.total_amount, 0);
+  const checkupEarnings = kpis?.revenue_today ?? 0;
+  const itemsPurchased = kpis?.items_purchased_today ?? 0;
+  const itemsUsed = kpis?.items_used_today ?? 0;
+  const netRevenue = checkupEarnings - itemsPurchased - itemsUsed;
 
-  // Inventory cost today (items purchased + items used), deducted from revenue.
-  const todayMoves = movements.filter((m) => sameDay(m.created_at) && m.type !== 'ADJUST');
-  const cost = (q: number, u?: number) => q * (u ?? 0);
-  const itemsPurchased = todayMoves.filter((m) => m.type === 'ADD').reduce((s, m) => s + cost(m.quantity, m.unit_cost), 0);
-  const itemsUsed = todayMoves.filter((m) => m.type === 'DEDUCT').reduce((s, m) => s + cost(m.quantity, m.unit_cost), 0);
-  const itemSpend = itemsPurchased + itemsUsed;
-  const netRevenue = checkupEarnings - itemSpend;
+  const weekRev = kpis?.week_revenue ?? 0;
+  const outstanding = kpis?.outstanding ?? 0;
+  const expTotal = kpis?.expenses_total ?? 0;
 
-  const weekRev = active.filter((b) => dayjs(b.created_at).isAfter(NOW.subtract(7, 'day'))).reduce((s, b) => s + b.total_amount, 0);
-  const outstanding = active.reduce((s, b) => s + (b.total_amount - b.amount_paid), 0);
-  const expTotal = expenses.reduce((s, e) => s + e.amount, 0);
-
-  const series = useMemo(() => {
-    const days = Array.from({ length: 7 }, (_, i) => NOW.subtract(6 - i, 'day'));
-    return days.map((d) => ({
-      label: d.format('dd')[0],
-      value: active.filter((b) => dayjs(b.created_at).isSame(d, 'day')).reduce((s, b) => s + b.total_amount, 0),
-    }));
-  }, [bills]);
+  const series = trend.map((p) => ({ label: dayjs(p.bucket).format('dd')[0], value: p.revenue }));
   const maxVal = Math.max(1, ...series.map((s) => s.value));
-
-  const byProvider = useMemo(() =>
-    providers.map((p) => ({ provider: p, share: active.filter((b) => b.provider_id === p.id).reduce((s, b) => s + b.doctor_share, 0) }))
-      .filter((x) => x.share > 0).sort((a, b) => b.share - a.share),
-  [providers, bills]);
-
-  // Outstanding grouped by patient.
-  const outstandingPatients = useMemo(() => {
-    const map = new Map<string, { name: string; due: number }>();
-    active.forEach((b) => {
-      const due = b.total_amount - b.amount_paid;
-      if (due <= 0) return;
-      const key = b.patient_id;
-      const name = b.patient?.full_name ?? 'Patient';
-      const prev = map.get(key);
-      map.set(key, { name, due: (prev?.due ?? 0) + due });
-    });
-    return Array.from(map.values()).sort((a, b) => b.due - a.due);
-  }, [bills]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
@@ -72,14 +47,14 @@ export default function ReportsScreen({ navigation }: any) {
         {/* KPI grid */}
         <View className="flex-row flex-wrap -mx-1.5 mt-4">
           {/* Net revenue (tap for breakdown) */}
-          <View className="w-1/2 px-1.5 mb-3">
+          <View className="w-1/2 lg:w-1/4 px-1.5 mb-3">
             <Pressable onPress={() => setModal('revenue')}>
               <GradientCard style={{ minHeight: 96 }}>
                 <View className="flex-row items-center justify-between">
                   <Ionicons name="cash-outline" size={18} color="#fff" />
                   <Ionicons name="information-circle-outline" size={15} color="rgba(255,255,255,0.8)" />
                 </View>
-                <Text className="text-2xl text-white mt-2" style={{ fontFamily: 'Nunito_800ExtraBold' }}>{rs(netRevenue)}</Text>
+                <Text className="text-2xl text-white mt-2" style={{ fontFamily: 'Inter_800ExtraBold' }}>{rs(netRevenue)}</Text>
                 <Text className="text-[10px] uppercase tracking-wider mt-1 text-white/85">Net revenue today</Text>
               </GradientCard>
             </Pressable>
@@ -87,69 +62,78 @@ export default function ReportsScreen({ navigation }: any) {
 
           <Kpi label="7-day revenue" value={rs(weekRev)} icon="trending-up-outline" />
 
-          <View className="w-1/2 px-1.5 mb-3">
+          <View className="w-1/2 lg:w-1/4 px-1.5 mb-3">
             <Pressable onPress={() => setModal('outstanding')}>
               <Card className="p-4" style={{ minHeight: 96 }}>
                 <View className="flex-row items-center justify-between">
                   <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
                   <Ionicons name="chevron-forward" size={15} color={colors.line} />
                 </View>
-                <Text className="text-2xl text-ink mt-2" style={{ fontFamily: 'Nunito_800ExtraBold' }}>{rs(outstanding)}</Text>
+                <Text className="text-2xl text-ink mt-2" style={{ fontFamily: 'Inter_800ExtraBold' }}>{rs(outstanding)}</Text>
                 <Text className="text-[10px] uppercase tracking-wider mt-1 text-muted">Outstanding</Text>
               </Card>
             </Pressable>
           </View>
 
-          <View className="w-1/2 px-1.5 mb-3">
+          <View className="w-1/2 lg:w-1/4 px-1.5 mb-3">
             <Pressable onPress={() => navigation.navigate('Expenses')}>
               <Card className="p-4" style={{ minHeight: 96 }}>
                 <View className="flex-row items-center justify-between">
                   <Ionicons name="receipt-outline" size={18} color={colors.forest[500]} />
                   <Ionicons name="chevron-forward" size={15} color={colors.line} />
                 </View>
-                <Text className="text-2xl text-ink mt-2" style={{ fontFamily: 'Nunito_800ExtraBold' }}>{rs(expTotal)}</Text>
+                <Text className="text-2xl text-ink mt-2" style={{ fontFamily: 'Inter_800ExtraBold' }}>{rs(expTotal)}</Text>
                 <Text className="text-[10px] uppercase tracking-wider mt-1 text-muted">Expenses</Text>
               </Card>
             </Pressable>
           </View>
         </View>
 
-        {/* Revenue chart */}
-        <Card className="mt-1">
-          <Text className="font-bold text-ink mb-1">Revenue · last 7 days</Text>
-          <View className="flex-row items-end justify-between mt-4" style={{ height: 120 }}>
-            {series.map((s, i) => (
-              <View key={i} className="items-center flex-1">
-                <Text className="text-[9px] text-muted mb-1">{s.value > 0 ? Math.round(s.value / 1000) + 'k' : ''}</Text>
-                <View className="rounded-t-md" style={{ width: 18, height: Math.max(4, (s.value / maxVal) * 90), backgroundColor: s.value > 0 ? colors.forest[500] : colors.line }} />
-                <Text className="text-[10px] text-muted mt-1">{s.label}</Text>
+        {/* Website: chart and doctor earnings share one row. */}
+        <View className={isDesktop ? 'flex-row gap-3 items-start' : ''}>
+          <View className={isDesktop ? 'flex-1' : ''}>
+            {/* Revenue chart */}
+            <Card className="mt-1">
+              <Text className="font-bold text-ink mb-1">Revenue · last 7 days</Text>
+              <View className="flex-row items-end justify-between mt-4" style={{ height: 120 }}>
+                {series.map((s, i) => (
+                  <View key={i} className="items-center flex-1">
+                    <Text className="text-[9px] text-muted mb-1">{s.value > 0 ? Math.round(s.value / 1000) + 'k' : ''}</Text>
+                    <View className="rounded-t-md" style={{ width: 18, height: Math.max(4, (s.value / maxVal) * 90), backgroundColor: s.value > 0 ? colors.forest[500] : colors.line }} />
+                    <Text className="text-[10px] text-muted mt-1">{s.label}</Text>
+                  </View>
+                ))}
               </View>
+            </Card>
+          </View>
+
+          <View className={isDesktop ? 'flex-1' : ''}>
+            {/* All-doctor earnings */}
+            <Text className={`text-lg font-bold text-ink mb-3 ${isDesktop ? 'mt-1' : 'mt-6'}`}>Doctor earnings</Text>
+            {byProvider.map((p) => (
+              <Card key={p.provider_id} className="mb-3 flex-row items-center">
+                <View className="h-10 w-10 rounded-xl bg-forest-50 items-center justify-center">
+                  <Ionicons name="person-outline" size={18} color={colors.forest[500]} />
+                </View>
+                <View className="flex-1 ml-3">
+                  <Text className="font-semibold text-ink">{p.full_name}</Text>
+                  <Text className="text-xs text-muted">{p.title}</Text>
+                </View>
+                <Text className="font-bold text-forest-600">{rs(p.share)}</Text>
+              </Card>
             ))}
           </View>
-        </Card>
+        </View>
 
-        {/* All-doctor earnings */}
-        <Text className="text-lg font-bold text-ink mt-6 mb-3">Doctor earnings</Text>
-        {byProvider.map(({ provider, share }) => (
-          <Card key={provider.id} className="mb-3 flex-row items-center">
-            <View className="h-10 w-10 rounded-xl bg-forest-50 items-center justify-center">
-              <Ionicons name="person-outline" size={18} color={colors.forest[500]} />
-            </View>
-            <View className="flex-1 ml-3">
-              <Text className="font-semibold text-ink">{provider.full_name}</Text>
-              <Text className="text-xs text-muted">{provider.title}</Text>
-            </View>
-            <Text className="font-bold text-forest-600">{rs(share)}</Text>
-          </Card>
-        ))}
-
-        {/* Management links */}
-        <Text className="text-lg font-bold text-ink mt-6 mb-3">Manage</Text>
-        <Link icon="calendar-outline" label="All appointments" onPress={() => navigation.navigate('Appointments')} />
-        <Link icon="people-circle-outline" label="Staff & accounts" onPress={() => navigation.navigate('Staff')} />
-        <Link icon="medkit-outline" label="Create Doctor" onPress={() => navigation.navigate('CreateStaff', { role: 'DOCTOR' })} />
-        <Link icon="people-outline" label="Create Receptionist" onPress={() => navigation.navigate('CreateStaff', { role: 'RECEPTIONIST' })} />
-        <Link icon="cash-outline" label="Expenses ledger" onPress={() => navigation.navigate('Expenses')} />
+        {/* Management links (capped to a column width on the website) */}
+        <View style={isDesktop ? { maxWidth: 720, width: '100%' } : undefined}>
+          <Text className="text-lg font-bold text-ink mt-6 mb-3">Manage</Text>
+          <Link icon="calendar-outline" label="All appointments" onPress={() => navigation.navigate('Appointments')} />
+          <Link icon="people-circle-outline" label="Staff & accounts" onPress={() => navigation.navigate('Staff')} />
+          <Link icon="medkit-outline" label="Create Doctor" onPress={() => navigation.navigate('CreateStaff', { role: 'DOCTOR' })} />
+          <Link icon="people-outline" label="Create Receptionist" onPress={() => navigation.navigate('CreateStaff', { role: 'RECEPTIONIST' })} />
+          <Link icon="cash-outline" label="Expenses ledger" onPress={() => navigation.navigate('Expenses')} />
+        </View>
       </ScrollView>
 
       {/* Revenue breakdown */}
@@ -168,9 +152,9 @@ export default function ReportsScreen({ navigation }: any) {
           <Text className="text-muted text-center py-6">No outstanding balances 🎉</Text>
         ) : (
           <ScrollView style={{ maxHeight: 360 }}>
-            {outstandingPatients.map((p, i) => (
-              <View key={i} className="flex-row items-center justify-between py-3 border-b border-line">
-                <Text className="text-ink font-medium">{p.name}</Text>
+            {outstandingPatients.map((p) => (
+              <View key={p.patient_id} className="flex-row items-center justify-between py-3 border-b border-line">
+                <Text className="text-ink font-medium">{p.full_name}</Text>
                 <Text className="text-danger font-bold">{rs(p.due)}</Text>
               </View>
             ))}
@@ -187,10 +171,10 @@ export default function ReportsScreen({ navigation }: any) {
 
 function Kpi({ label, value, icon }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap }) {
   return (
-    <View className="w-1/2 px-1.5 mb-3">
+    <View className="w-1/2 lg:w-1/4 px-1.5 mb-3">
       <Card className="p-4" style={{ minHeight: 96 }}>
         <Ionicons name={icon} size={18} color={colors.forest[500]} />
-        <Text className="text-2xl text-ink mt-2" style={{ fontFamily: 'Nunito_800ExtraBold' }}>{value}</Text>
+        <Text className="text-2xl text-ink mt-2" style={{ fontFamily: 'Inter_800ExtraBold' }}>{value}</Text>
         <Text className="text-[10px] uppercase tracking-wider mt-1 text-muted">{label}</Text>
       </Card>
     </View>
@@ -207,10 +191,15 @@ function Row({ label, value, bold, muted, danger }: { label: string; value: stri
 }
 
 function DrillSheet({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
+  // Website: centered dialog instead of a monitor-wide bottom sheet.
+  const isDesktop = useIsDesktop();
   return (
-    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal transparent visible={visible} animationType={isDesktop ? 'fade' : 'slide'} onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40" onPress={onClose} />
-      <View className="bg-cream rounded-t-3xl px-5 pt-4 pb-8 absolute bottom-0 left-0 right-0">
+      <View
+        className="bg-white rounded-t-3xl px-5 pt-4 pb-8 absolute bottom-0 left-0 right-0"
+        style={isDesktop ? { maxWidth: 520, marginHorizontal: 'auto', bottom: '14%', borderRadius: 24 } : undefined}
+      >
         <View className="items-center mb-3"><View className="h-1 w-10 rounded-full bg-line" /></View>
         <View className="flex-row items-center justify-between mb-3">
           <Text className="text-lg font-bold text-ink">{title}</Text>
@@ -226,7 +215,7 @@ function Link({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; 
   return (
     <Pressable onPress={onPress}>
       <Card className="mb-3 flex-row items-center">
-        <View className="h-10 w-10 rounded-xl bg-cream items-center justify-center">
+        <View className="h-10 w-10 rounded-xl bg-forest-50 items-center justify-center">
           <Ionicons name={icon} size={18} color={colors.forest[600]} />
         </View>
         <Text className="flex-1 ml-3 font-semibold text-ink">{label}</Text>

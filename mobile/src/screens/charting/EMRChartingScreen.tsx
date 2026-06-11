@@ -8,8 +8,9 @@ import { Button, Card, IconButton, Avatar } from '../../components/ui';
 import ToothChart from '../../components/ToothChart';
 import { useAuth } from '../../auth/AuthContext';
 import { getPatient, listProviders } from '../../api/queries';
-import { createEMR } from '../../api/mutations';
+import { createEMR, markAwaitingPayment } from '../../api/mutations';
 import { notify } from '../../lib/confirm';
+import { qk, invalidate } from '../../lib/queryKeys';
 import { Specialty, ToothChart as ToothChartData } from '../../types/models';
 
 const AREAS = ['Glabella', 'Forehead', 'Crow’s Feet', 'Cheeks', 'Lips', 'Jawline', 'Nasolabial', 'Chin'];
@@ -20,8 +21,8 @@ export default function EMRChartingScreen({ route, navigation }: any) {
   const qc = useQueryClient();
   const { profile } = useAuth();
 
-  const { data: patient } = useQuery({ queryKey: ['patient', patientId], queryFn: () => getPatient(patientId) });
-  const { data: providers = [] } = useQuery({ queryKey: ['providers'], queryFn: listProviders });
+  const { data: patient } = useQuery({ queryKey: qk.patient(patientId), queryFn: () => getPatient(patientId) });
+  const { data: providers = [] } = useQuery({ queryKey: qk.providers(), queryFn: listProviders });
   const providerId = providers.find((p) => p.profile_id === profile?.id)?.id ?? null;
 
   const [specialty, setSpecialty] = useState<Specialty>('DENTAL');
@@ -38,8 +39,8 @@ export default function EMRChartingScreen({ route, navigation }: any) {
     setAreas((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
 
   const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      createEMR({
+    mutationFn: async () => {
+      await createEMR({
         patient_id: patientId,
         provider_id: providerId,
         appointment_id: appointmentId ?? null,
@@ -50,10 +51,21 @@ export default function EMRChartingScreen({ route, navigation }: any) {
         tooth_chart: specialty === 'DENTAL' ? tooth : {},
         aesthetic_data: specialty === 'AESTHETIC' ? { areas, units: Number(units) || 0, product } : {},
         notes,
-      }),
+      });
+      // A real session (reached from the doctor's queue) is now finished on
+      // the doctor's side — hand it to reception to collect payment. Ad-hoc
+      // charts opened from a patient file have no appointment, so skip.
+      if (appointmentId) await markAwaitingPayment(appointmentId);
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['p-emr', patientId] });
-      notify('EMR Recorded', 'The medical record has been saved.');
+      qc.invalidateQueries({ queryKey: qk.patientEmr(patientId) });
+      if (appointmentId) invalidate(qc, 'appointments');
+      notify(
+        'EMR Recorded',
+        appointmentId
+          ? 'Saved. The visit is now awaiting payment at reception.'
+          : 'The medical record has been saved.',
+      );
       navigation.navigate('Tabs', { screen: 'Home' });
     },
     onError: (err: any) => Alert.alert('Error', err.message),
@@ -109,7 +121,7 @@ export default function EMRChartingScreen({ route, navigation }: any) {
               {AREAS.map((a) => {
                 const on = areas.includes(a);
                 return (
-                  <Pressable key={a} onPress={() => toggleArea(a)} className={`px-3 py-1.5 rounded-full ${on ? 'bg-forest-600' : 'bg-cream border border-line'}`}>
+                  <Pressable key={a} onPress={() => toggleArea(a)} className={`px-3 py-1.5 rounded-full ${on ? 'bg-forest-600' : 'bg-white border border-line'}`}>
                     <Text className={`text-xs font-medium ${on ? 'text-white' : 'text-muted'}`}>{a}</Text>
                   </Pressable>
                 );
@@ -138,7 +150,7 @@ function Field({ label, multiline, ...props }: any) {
         {...props}
         multiline={multiline}
         placeholderTextColor={colors.muted}
-        className="bg-white rounded-xl px-3 py-3 text-ink border border-line"
+        className="bg-slate-50 rounded-xl px-3 py-3 text-ink border border-line"
         style={multiline ? { minHeight: 70, textAlignVertical: 'top' } : undefined}
       />
     </View>

@@ -10,6 +10,7 @@ import { age, dateTime, rs, shortDate } from '../../lib/format';
 import {
   appointmentsByPatient, billsByPatient, emrByPatient, getPatient, prescriptionsByPatient,
 } from '../../api/queries';
+import { qk } from '../../lib/queryKeys';
 import { BillStatus } from '../../types/models';
 
 type TabKey = 'overview' | 'visits' | 'emr' | 'bills';
@@ -21,7 +22,7 @@ const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }
 ];
 
 const billTone: Record<BillStatus, 'mint' | 'forest' | 'warning' | 'danger' | 'neutral'> = {
-  PAID: 'forest', PARTIAL: 'warning', PENDING: 'danger', CANCELLED: 'neutral',
+  PAID: 'mint', PARTIAL: 'warning', PENDING: 'danger', CANCELLED: 'neutral',
 };
 
 export default function PatientDetailScreen({ route, navigation }: any) {
@@ -30,11 +31,11 @@ export default function PatientDetailScreen({ route, navigation }: any) {
   const role = profile?.role ?? 'RECEPTIONIST';
   const [tab, setTab] = useState<TabKey>('overview');
 
-  const { data: patient, isLoading } = useQuery({ queryKey: ['patient', patientId], queryFn: () => getPatient(patientId) });
-  const { data: visits = [] } = useQuery({ queryKey: ['p-visits', patientId], queryFn: () => appointmentsByPatient(patientId) });
-  const { data: emr = [] } = useQuery({ queryKey: ['p-emr', patientId], queryFn: () => emrByPatient(patientId) });
-  const { data: rxs = [] } = useQuery({ queryKey: ['p-rx', patientId], queryFn: () => prescriptionsByPatient(patientId) });
-  const { data: bills = [] } = useQuery({ queryKey: ['p-bills', patientId], queryFn: () => billsByPatient(patientId) });
+  const { data: patient, isLoading } = useQuery({ queryKey: qk.patient(patientId), queryFn: () => getPatient(patientId) });
+  const { data: visits = [] } = useQuery({ queryKey: qk.patientVisits(patientId), queryFn: () => appointmentsByPatient(patientId) });
+  const { data: emr = [] } = useQuery({ queryKey: qk.patientEmr(patientId), queryFn: () => emrByPatient(patientId) });
+  const { data: rxs = [] } = useQuery({ queryKey: qk.patientRx(patientId), queryFn: () => prescriptionsByPatient(patientId) });
+  const { data: bills = [] } = useQuery({ queryKey: qk.patientBills(patientId), queryFn: () => billsByPatient(patientId) });
 
   if (isLoading || !patient) {
     return <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}><Loader /></SafeAreaView>;

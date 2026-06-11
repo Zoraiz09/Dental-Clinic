@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { colors } from '../../theme/colors';
 import { Button, IconButton } from '../../components/ui';
 import { createPatient, getPatient, updatePatient } from '../../api/queries';
+import { qk, invalidate } from '../../lib/queryKeys';
 
 const GENDERS = ['Female', 'Male', 'Other'];
 
@@ -21,7 +22,7 @@ export default function RegisterPatientScreen({ navigation, route }: any) {
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // In edit mode, load and prefill the existing patient.
-  const { data: existing } = useQuery({ queryKey: ['patient', editId], queryFn: () => getPatient(editId!), enabled: isEdit });
+  const { data: existing } = useQuery({ queryKey: qk.patient(editId!), queryFn: () => getPatient(editId!), enabled: isEdit });
   useEffect(() => {
     if (existing) {
       setForm({
@@ -39,8 +40,7 @@ export default function RegisterPatientScreen({ navigation, route }: any) {
         ? updatePatient(editId!, { ...form, photo_url: photo ?? undefined })
         : createPatient({ ...form, photo_url: photo ?? undefined }),
     onSuccess: (p) => {
-      qc.invalidateQueries({ queryKey: ['patients'] });
-      qc.invalidateQueries({ queryKey: ['patient', p.id] });
+      invalidate(qc, 'patients');
       if (isEdit) navigation.goBack();
       else navigation.replace('PatientDetail', { patientId: p.id });
     },
@@ -90,7 +90,7 @@ export default function RegisterPatientScreen({ navigation, route }: any) {
                 <Ionicons name="camera-outline" size={28} color={colors.forest[500]} />
               </View>
             )}
-            <View className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-forest-600 items-center justify-center border-2 border-cream">
+            <View className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-forest-600 items-center justify-center border-2 border-white">
               <Ionicons name="add" size={16} color="#fff" />
             </View>
           </Pressable>
@@ -130,7 +130,7 @@ function Input({ label, error, multiline, ...props }: TextInputProps & { label: 
         {...props}
         multiline={multiline}
         placeholderTextColor={colors.muted}
-        className="bg-white rounded-xl px-3 py-3 text-ink border border-line"
+        className="bg-slate-50 rounded-xl px-3 py-3 text-ink border border-line"
         style={multiline ? { minHeight: 72, textAlignVertical: 'top' } : undefined}
       />
       {error ? <Text className="text-xs text-danger mt-1">{error}</Text> : null}

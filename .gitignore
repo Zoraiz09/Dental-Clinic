@@ -9,6 +9,9 @@ node_modules/
 **/.env
 !**/.env.example
 
+# Firebase service-account private key (push credentials — never commit)
+**/*firebase-adminsdk*.json
+
 # Expo / build artifacts
 .expo/
 **/.expo/
@@ -35,3 +38,4 @@ Thumbs.db
 
 # Generated QR / temp
 mobile/qr-expo.png
+mobile/scripts/shots/

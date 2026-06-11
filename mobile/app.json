@@ -2,6 +2,7 @@
   "expo": {
     "name": "Noor Dentofacial",
     "slug": "noor-dentofacial",
+    "owner": "noordentalclinic",
     "scheme": "noorclinic",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,14 +19,20 @@
     },
     "android": {
       "package": "clinic.noor.dentofacial",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#1B4332",
+        "backgroundColor": "#F8FAF9",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -41,7 +48,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#1B4332",
+          "backgroundColor": "#F8FAF9",
           "image": "./assets/splash-icon.png",
           "imageWidth": 180
         }
@@ -49,7 +56,10 @@
     ],
     "extra": {
       "supabaseUrl": "",
-      "supabaseAnonKey": ""
+      "supabaseAnonKey": "",
+      "eas": {
+        "projectId": "fb84b683-8af4-454a-bad6-8be5daba3711"
+      }
     }
   }
 }

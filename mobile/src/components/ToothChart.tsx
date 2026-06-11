@@ -57,7 +57,7 @@ export default function ToothChart({ value, onChange, editable = true }: Props) 
           style={{
             width: 30, height: 38, backgroundColor: bg,
             borderWidth: isSel ? 2 : 1,
-            borderColor: isSel ? colors.forest[600] : light ? colors.line : 'transparent',
+            borderColor: isSel ? colors.ink : light ? colors.line : 'transparent',
           }}
         >
           <Text style={{ fontSize: 9, fontWeight: '700', color: light ? colors.muted : '#fff' }}>{n}</Text>

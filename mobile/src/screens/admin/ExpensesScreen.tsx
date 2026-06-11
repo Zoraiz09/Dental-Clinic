@@ -5,13 +5,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { colors } from '../../theme/colors';
-import { Button, Card, GradientCard, IconButton, Pill } from '../../components/ui';
+import { Button, Card, EmptyState, GradientCard, IconButton, Pill } from '../../components/ui';
+import { shadows } from '../../theme/elevation';
 import { rs, dateTimeStamp } from '../../lib/format';
 import { listExpenses } from '../../api/queries';
 import { createExpense } from '../../api/mutations';
+import { qk, invalidate } from '../../lib/queryKeys';
+import { clinicNow } from '../../lib/selectors';
 import { Field, Sheet } from '../inventory/InventoryScreen';
 
-const NOW = dayjs();
 type Range = 'all' | 'week' | 'month' | 'lastMonth';
 const RANGES: { key: Range; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -22,10 +24,11 @@ const RANGES: { key: Range; label: string }[] = [
 
 export default function ExpensesScreen({ navigation }: any) {
   const qc = useQueryClient();
-  const { data = [], isLoading } = useQuery({ queryKey: ['expenses'], queryFn: listExpenses });
+  const { data = [], isLoading } = useQuery({ queryKey: qk.expenses(), queryFn: listExpenses });
   const [show, setShow] = useState(false);
   const [range, setRange] = useState<Range>('all');
 
+  const NOW = clinicNow();
   const inRange = (spent: string) => {
     const d = dayjs(spent);
     if (range === 'week') return d.isAfter(NOW.subtract(7, 'day'));
@@ -49,7 +52,7 @@ export default function ExpensesScreen({ navigation }: any) {
           <Text className="text-white/80 text-xs font-semibold uppercase tracking-wider">
             {RANGES.find((r) => r.key === range)?.label} total
           </Text>
-          <Text className="text-white text-3xl mt-1" style={{ fontFamily: 'Nunito_800ExtraBold' }}>{rs(total)}</Text>
+          <Text className="text-white text-3xl mt-1" style={{ fontFamily: 'Inter_800ExtraBold' }}>{rs(total)}</Text>
         </GradientCard>
 
         {/* Date range filter */}
@@ -71,7 +74,7 @@ export default function ExpensesScreen({ navigation }: any) {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 100 }}
         renderItem={({ item }) => (
           <Card className="mb-3 flex-row items-center">
-            <View className="h-10 w-10 rounded-xl bg-cream items-center justify-center">
+            <View className="h-10 w-10 rounded-xl bg-taupe-100 items-center justify-center">
               <Ionicons name="cash-outline" size={18} color={colors.taupe[500]} />
             </View>
             <View className="flex-1 ml-3">
@@ -82,18 +85,18 @@ export default function ExpensesScreen({ navigation }: any) {
             <Text className="font-bold text-ink ml-3">{rs(item.amount)}</Text>
           </Card>
         )}
-        ListEmptyComponent={!isLoading ? <Text className="text-center text-muted mt-10">No expenses</Text> : null}
+        ListEmptyComponent={<EmptyState icon="receipt-outline" title="No expenses" hint="Track purchases and overhead costs here." />}
       />
 
       <Pressable
         onPress={() => setShow(true)}
         className="absolute right-6 bottom-6 h-14 w-14 rounded-full bg-forest-600 items-center justify-center active:opacity-80"
-        style={{ shadowColor: '#5E472E', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}
+        style={shadows.fab}
       >
         <Ionicons name="add" size={28} color="#fff" />
       </Pressable>
 
-      {show && <AddExpenseSheet onClose={() => setShow(false)} onDone={() => qc.invalidateQueries({ queryKey: ['expenses'] })} />}
+      {show && <AddExpenseSheet onClose={() => setShow(false)} onDone={() => invalidate(qc, 'expenses')} />}
     </SafeAreaView>
   );
 }

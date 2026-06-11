@@ -9,8 +9,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
-  Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold,
-} from '@expo-google-fonts/nunito';
+  Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold,
+} from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,6 +26,12 @@ import RootNavigator from './src/navigation/RootNavigator';
 // Enable flexible time parsing (custom appointment slots).
 dayjs.extend(customParseFormat);
 
+// Web: paint the page itself cream so nothing white peeks out around the
+// app (e.g. beside width-constrained screens or during overscroll).
+if (typeof document !== 'undefined') {
+  document.body.style.backgroundColor = colors.cream;
+}
+
 // Keep the splash up until fonts are ready (avoids a flash of system font).
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -40,12 +46,12 @@ function applyGlobalFont() {
   fontApplied = true;
   const T = RNText as any;
   T.defaultProps = T.defaultProps || {};
-  T.defaultProps.style = [{ fontFamily: 'Nunito_400Regular' }];
+  T.defaultProps.style = [{ fontFamily: 'Inter_400Regular' }];
 }
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold,
+    Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold,
   });
 
   if (fontsLoaded) applyGlobalFont();

@@ -5,20 +5,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { colors } from '../../theme/colors';
-import { Appear, Avatar, Card, H1, IconButton, Pill } from '../../components/ui';
+import { Appear, Avatar, Card, EmptyState, H1, IconButton, Pill, SkeletonRows } from '../../components/ui';
 import { useAuth } from '../../auth/AuthContext';
 import { listAppointments, listProviders } from '../../api/queries';
 import { cancelAppointment, checkInAppointment, completeAppointment, completeVisitAndBill } from '../../api/mutations';
 import { confirmAsync } from '../../lib/confirm';
+import { qk, invalidate } from '../../lib/queryKeys';
+import { clinicNow } from '../../lib/selectors';
 import { Appointment, AppointmentStatus } from '../../types/models';
 
 const statusTone: Record<AppointmentStatus, 'mint' | 'forest' | 'neutral' | 'danger' | 'warning'> = {
   BOOKED: 'neutral', CONFIRMED: 'mint', CHECKED_IN: 'forest',
-  COMPLETED: 'forest', CANCELLED: 'danger', NO_SHOW: 'warning',
+  AWAITING_PAYMENT: 'warning', COMPLETED: 'mint', CANCELLED: 'danger', NO_SHOW: 'warning',
 };
 
-const NOW = dayjs();
-const STATUSES: (AppointmentStatus | 'ALL')[] = ['ALL', 'BOOKED', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED'];
+const STATUSES: (AppointmentStatus | 'ALL')[] = ['ALL', 'BOOKED', 'CONFIRMED', 'CHECKED_IN', 'AWAITING_PAYMENT', 'COMPLETED', 'CANCELLED'];
 
 export default function ScheduleScreen({ navigation }: any) {
   const qc = useQueryClient();
@@ -26,8 +27,9 @@ export default function ScheduleScreen({ navigation }: any) {
   const role = profile?.role ?? 'RECEPTIONIST';
   const canBill = role === 'RECEPTIONIST' || role === 'ADMIN';
 
-  const { data = [], isLoading } = useQuery({ queryKey: ['appointments'], queryFn: listAppointments });
-  const { data: providers = [] } = useQuery({ queryKey: ['providers'], queryFn: listProviders });
+  const NOW = clinicNow();
+  const { data = [], isLoading } = useQuery({ queryKey: qk.appointments(), queryFn: () => listAppointments() });
+  const { data: providers = [] } = useQuery({ queryKey: qk.providers(), queryFn: listProviders });
   const myProviderId = providers.find((p) => p.profile_id === profile?.id)?.id;
 
   // Filters (available to all roles).
@@ -50,15 +52,14 @@ export default function ScheduleScreen({ navigation }: any) {
   const action = useMutation({
     mutationFn: ({ id, kind }: { id: string; kind: 'checkin' | 'cancel' }) =>
       kind === 'checkin' ? checkInAppointment(id) : cancelAppointment(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+    onSuccess: () => invalidate(qc, 'appointments'),
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const complete = useMutation({
     mutationFn: (id: string) => (canBill ? completeVisitAndBill(id) : completeAppointment(id).then(() => null)),
     onSuccess: async (bill) => {
-      qc.invalidateQueries({ queryKey: ['appointments'] });
-      qc.invalidateQueries({ queryKey: ['bills'] });
+      invalidate(qc, 'sessionCompleted');
       if (bill && (await confirmAsync('Visit completed', 'A bill was generated. Collect payment now?', 'Collect payment'))) {
         navigation.navigate('BillDetail', { billId: bill.id });
       }
@@ -172,7 +173,11 @@ export default function ScheduleScreen({ navigation }: any) {
           </Pressable>
           </Appear>
         )}
-        ListEmptyComponent={!isLoading ? <Text className="text-center text-muted mt-10">No appointments match these filters</Text> : null}
+        ListEmptyComponent={
+          isLoading
+            ? <SkeletonRows count={4} />
+            : <EmptyState icon="calendar-outline" title="No appointments" hint="Try different filters or book a new appointment." />
+        }
       />
     </SafeAreaView>
   );
@@ -186,7 +191,7 @@ function ActionRow({ item, onCheckIn, onComplete, onCancel }: { item: Appointmen
       {(item.status === 'BOOKED' || item.status === 'CONFIRMED') && (
         <Mini icon="checkmark-done-outline" label="Check in" tone="forest" onPress={onCheckIn} />
       )}
-      {item.status === 'CHECKED_IN' && (
+      {(item.status === 'CHECKED_IN' || item.status === 'AWAITING_PAYMENT') && (
         <Mini icon="checkmark-circle-outline" label="Complete" tone="forest" onPress={onComplete} />
       )}
       <Mini icon="close-outline" label="Cancel" tone="danger" onPress={onCancel} />

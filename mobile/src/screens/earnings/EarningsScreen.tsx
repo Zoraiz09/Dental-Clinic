@@ -5,13 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { colors } from '../../theme/colors';
-import { Card, GradientCard, H1, Loader, Muted, Pill } from '../../components/ui';
+import { Card, EmptyState, GradientCard, H1, Loader, Muted, Pill } from '../../components/ui';
 import { rs, shortDate } from '../../lib/format';
 import { useAuth } from '../../auth/AuthContext';
 import { billsByProvider, listProviders } from '../../api/queries';
+import { qk } from '../../lib/queryKeys';
+import { clinicNow, dailySeries } from '../../lib/selectors';
 import { Bill } from '../../types/models';
 
-const NOW = dayjs();
 type Period = 'today' | 'week' | 'month' | 'all';
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'today', label: 'Today' }, { key: 'week', label: 'Week' },
@@ -20,10 +21,10 @@ const PERIODS: { key: Period; label: string }[] = [
 
 export default function EarningsScreen() {
   const { profile } = useAuth();
-  const { data: providers = [] } = useQuery({ queryKey: ['providers'], queryFn: listProviders });
+  const { data: providers = [] } = useQuery({ queryKey: qk.providers(), queryFn: listProviders });
   const providerId = providers.find((p) => p.profile_id === profile?.id)?.id;
   const { data: bills = [], isLoading } = useQuery({
-    queryKey: ['provider-bills', providerId],
+    queryKey: qk.providerBills(providerId),
     queryFn: () => billsByProvider(providerId!),
     enabled: !!providerId,
   });
@@ -31,11 +32,12 @@ export default function EarningsScreen() {
   const [period, setPeriod] = useState<Period>('week');
   const [paidOnly, setPaidOnly] = useState(false);
 
+  const now = clinicNow();
   const inPeriod = (b: Bill) => {
     const d = dayjs(b.created_at);
-    if (period === 'today') return d.isSame(NOW, 'day');
-    if (period === 'week') return d.isAfter(NOW.subtract(7, 'day'));
-    if (period === 'month') return d.isAfter(NOW.subtract(1, 'month'));
+    if (period === 'today') return d.isSame(now, 'day');
+    if (period === 'week') return d.isAfter(now.subtract(7, 'day'));
+    if (period === 'month') return d.isAfter(now.subtract(1, 'month'));
     return true;
   };
 
@@ -45,22 +47,16 @@ export default function EarningsScreen() {
   const pending = total - paid;
 
   // Last 7 days bar series of doctor_share (paid + pending).
-  const series = useMemo(() => {
-    const days = Array.from({ length: 7 }, (_, i) => NOW.subtract(6 - i, 'day'));
-    return days.map((d) => ({
-      label: d.format('dd')[0],
-      value: bills.filter((b) => dayjs(b.created_at).isSame(d, 'day')).reduce((s, b) => s + b.doctor_share, 0),
-    }));
-  }, [bills]);
+  const series = useMemo(
+    () => dailySeries(bills, (b) => b.created_at, (b) => b.doctor_share),
+    [bills],
+  );
   const maxVal = Math.max(1, ...series.map((s) => s.value));
 
   if (!providerId) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
-        <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="cash-outline" size={34} color={colors.line} />
-          <Text className="text-muted mt-3 text-center">Your account isn’t linked to a provider record yet.</Text>
-        </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: ‘transparent’ }} edges={[‘top’]}>
+        <EmptyState icon="cash-outline" title="No provider record" hint="Your account isn’t linked to a provider record yet. Ask your admin." />
       </SafeAreaView>
     );
   }
@@ -92,7 +88,7 @@ export default function EarningsScreen() {
             </Text>
             <View className="bg-white/20 px-2.5 py-1 rounded-full"><Text className="text-white text-[11px] font-semibold">{filtered.length} bills</Text></View>
           </View>
-          <Text className="text-white text-4xl mt-2" style={{ fontFamily: 'Nunito_800ExtraBold' }}>{rs(total)}</Text>
+          <Text className="text-white text-4xl mt-2" style={{ fontFamily: 'Inter_800ExtraBold' }}>{rs(total)}</Text>
           <View className="flex-row mt-3 gap-4">
             <View className="flex-row items-center">
               <View className="h-2 w-2 rounded-full bg-white/80 mr-1.5" />
@@ -135,7 +131,7 @@ export default function EarningsScreen() {
         {/* Contributing bills */}
         <Text className="text-lg font-bold text-ink mt-6 mb-3">Contributing bills</Text>
         {filtered.length === 0 ? (
-          <Text className="text-muted text-center mt-6">No bills in this period</Text>
+          <EmptyState icon="receipt-outline" title="No bills in this period" hint="Try a longer date range or turn off Paid-only." />
         ) : (
           filtered.map((b) => (
             <Card key={b.id} className="mb-3">
@@ -145,7 +141,7 @@ export default function EarningsScreen() {
               </View>
               <View className="flex-row items-center justify-between mt-1">
                 <Text className="text-xs text-muted">{b.invoice_no} · {shortDate(b.created_at)}</Text>
-                <Pill label={b.status} tone={b.status === 'PAID' ? 'forest' : 'danger'} />
+                <Pill label={b.status} tone={b.status === 'PAID' ? 'mint' : 'danger'} />
               </View>
             </Card>
           ))

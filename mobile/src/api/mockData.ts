@@ -2,9 +2,13 @@
 // Mirrors the seed in supabase/seed.sql and the UI mockups.
 import dayjs from 'dayjs';
 import {
-  Appointment, AppointmentType, Bill, DoctorEarnings, EMR, Expense,
+  Appointment, AppointmentType, AppNotification, Bill, DoctorEarnings, EMR, Expense,
   InventoryItem, Patient, Prescription, Profile, Provider, Specialty, TimeSlot, UserRole,
 } from '../types/models';
+
+// In-app notifications store (mock mode has no DB triggers/Realtime, so this
+// stays empty — the bell falls back to the client-derived time-based alerts).
+export const mockNotifications: AppNotification[] = [];
 
 export const mockProviders: Provider[] = [
   { id: 'pv1', profile_id: null, full_name: 'Dr. Ethan Walker', title: 'Senior Facial Aesthetic Specialist', specialty: 'AESTHETIC', is_primary: true, avatar_url: null, is_active: true, employment_type: 'IN_HOUSE', default_share_pct: 50 },

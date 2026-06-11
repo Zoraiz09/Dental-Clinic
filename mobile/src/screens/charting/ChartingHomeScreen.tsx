@@ -6,11 +6,12 @@ import { useQuery } from '@tanstack/react-query';
 import { colors } from '../../theme/colors';
 import { Avatar, Card, H1, Muted } from '../../components/ui';
 import { listPatients } from '../../api/queries';
+import { qk } from '../../lib/queryKeys';
 
 // Doctor's Charting tab: pick a patient to start/continue an EMR.
 export default function ChartingHomeScreen({ navigation }: any) {
   const [search, setSearch] = useState('');
-  const { data = [] } = useQuery({ queryKey: ['patients', search], queryFn: () => listPatients(search) });
+  const { data = [] } = useQuery({ queryKey: qk.patients(search), queryFn: () => listPatients(search) });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>

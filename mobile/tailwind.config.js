@@ -1,58 +1,31 @@
 /** @type {import('tailwindcss').Config} */
-// Noor Dentofacial Clinic — design tokens lifted from the UI mockups
-// (forest green + cream + warm taupe; pastel gradient on auth).
+// Design tokens sourced from src/theme/palette.js — ONE source of truth.
+// Token names are legacy (forest/taupe) but values are the teal/gold premium palette.
+const palette = require('./src/theme/palette');
+
 module.exports = {
   content: ['./App.tsx', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors: {
-        // Primary — creamy caramel / toffee (token kept as `forest` so all
-        // existing classNames re-skin automatically).
-        forest: {
-          50:  '#FAF3E9',
-          100: '#F1E3CC',
-          200: '#E4C9A1',
-          300: '#D2A86E',
-          400: '#BD8743',
-          500: '#9C6A30', // accents / links / icons
-          600: '#80531F', // primary CTA / headings
-          700: '#674319',
-          800: '#4E3213',
-          900: '#35210C',
-        },
-        // Warm mocha — secondary ("Start Session") button
-        taupe: {
-          100: '#EDE4D7',
-          300: '#C7B095',
-          500: '#8A6B49',
-          700: '#5E472E',
-        },
-        // Neutrals / surfaces — latte & cream
-        cream:    '#F6EEE3',
-        sand:     '#EADDC9',
-        surface:  '#FFFDF8',
-        ink:      '#36281C',
-        muted:    '#6E5C4A',
-        line:     '#E6D7C3',
-        // Status (warm-tuned)
-        danger:  '#BB4A2C',
-        warning: '#B97E18',
-        success: '#6E8A4F',
-        info:    '#5E78A8',
+        ...palette,
+        // Honest alias — new code should prefer `primary-*` over `forest-*`.
+        primary: palette.forest,
+        brand:   palette.taupe,
       },
       borderRadius: {
-        xl: '16px',
-        '2xl': '20px',
-        '3xl': '28px',
+        xl:   '14px',
+        '2xl':'16px',
+        '3xl':'24px',
       },
       fontFamily: {
-        // Loaded in App via expo-font; falls back to system until then.
-        heading: ['PlayfairDisplay_700Bold', 'serif'],
-        sans: ['Inter_400Regular', 'System'],
-        medium: ['Inter_500Medium', 'System'],
-        semibold: ['Inter_600SemiBold', 'System'],
-        bold: ['Inter_700Bold', 'System'],
+        // Inter weights loaded in App.tsx via @expo-google-fonts/inter.
+        heading:  ['Inter_700Bold',    'System'],
+        sans:     ['Inter_400Regular', 'System'],
+        medium:   ['Inter_500Medium',  'System'],
+        semibold: ['Inter_600SemiBold','System'],
+        bold:     ['Inter_700Bold',    'System'],
       },
     },
   },

@@ -10,9 +10,10 @@ import { colors } from '../../theme/colors';
 import { Avatar, Button, Card, H1, Muted } from '../../components/ui';
 import { useAuth } from '../../auth/AuthContext';
 import { useSettings } from '../../settings/SettingsContext';
-import { registerForPush } from '../../lib/push';
+import { registerForPush, unregisterPush } from '../../lib/push';
 import { changePassword, sendPasswordReset } from '../../api/auth';
 import { notify } from '../../lib/confirm';
+import { invalidate } from '../../lib/queryKeys';
 import { Profile } from '../../types/models';
 import { Field, Sheet } from '../inventory/InventoryScreen';
 
@@ -37,6 +38,7 @@ export default function SettingsScreen({ navigation }: any) {
       const token = await registerForPush(profile.id);
       if (!token) return Alert.alert('Push unavailable', 'Enable notifications in system settings, or use a physical device.');
     }
+    if (!val) await unregisterPush(); // stop pushes to this device immediately
     setPush(val);
   };
 
@@ -152,8 +154,7 @@ function EditProfileSheet({ profile, onClose }: { profile: Profile; onClose: () 
         avatar_url: photo,
       });
       // Refresh screens that show staff/doctor names & photos.
-      qc.invalidateQueries({ queryKey: ['staff'] });
-      qc.invalidateQueries({ queryKey: ['providers'] });
+      invalidate(qc, 'staff');
       notify('Profile updated', 'Your changes have been saved.');
       onClose();
     } catch (e: any) {
@@ -172,7 +173,7 @@ function EditProfileSheet({ profile, onClose }: { profile: Profile; onClose: () 
           ) : (
             <Avatar name={fullName} size={92} />
           )}
-          <View className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-forest-600 items-center justify-center border-2 border-cream">
+          <View className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-forest-600 items-center justify-center border-2 border-white">
             <Ionicons name="pencil" size={14} color="#fff" />
           </View>
         </Pressable>

@@ -9,6 +9,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { getPatient, listProviders } from '../../api/queries';
 import { createPrescription } from '../../api/mutations';
 import { sharePrescriptionPdf } from '../../lib/pdf';
+import { qk } from '../../lib/queryKeys';
 import { PrescriptionType, RxItem, Specialty } from '../../types/models';
 
 export default function PrescriptionBuilderScreen({ route, navigation }: any) {
@@ -19,8 +20,8 @@ export default function PrescriptionBuilderScreen({ route, navigation }: any) {
 
   const qc = useQueryClient();
   const { profile } = useAuth();
-  const { data: patient } = useQuery({ queryKey: ['patient', patientId], queryFn: () => getPatient(patientId) });
-  const { data: providers = [] } = useQuery({ queryKey: ['providers'], queryFn: listProviders });
+  const { data: patient } = useQuery({ queryKey: qk.patient(patientId), queryFn: () => getPatient(patientId) });
+  const { data: providers = [] } = useQuery({ queryKey: qk.providers(), queryFn: listProviders });
   const providerId = providers.find((p) => p.profile_id === profile?.id)?.id ?? null;
 
   const [items, setItems] = useState<RxItem[]>([{ drug: '', dose: '', frequency: '', duration: '' }]);
@@ -46,7 +47,7 @@ export default function PrescriptionBuilderScreen({ route, navigation }: any) {
         follow_up_date: followUp || null,
       }),
     onSuccess: async (rx) => {
-      qc.invalidateQueries({ queryKey: ['p-rx', patientId] });
+      qc.invalidateQueries({ queryKey: qk.patientRx(patientId) });
       if (patient) {
         Alert.alert('Prescription saved', 'Generate a branded PDF to print or share?', [
           { text: 'Not now', onPress: () => navigation.goBack() },
@@ -76,11 +77,11 @@ export default function PrescriptionBuilderScreen({ route, navigation }: any) {
                 <Pressable onPress={() => removeRow(i)} hitSlop={8}><Ionicons name="trash-outline" size={16} color={colors.danger} /></Pressable>
               )}
             </View>
-            <TextInput value={it.drug} onChangeText={(v) => update(i, 'drug', v)} placeholder="Drug name" placeholderTextColor={colors.muted} className="bg-cream rounded-lg px-3 py-2.5 text-ink border border-line mb-2" />
+            <TextInput value={it.drug} onChangeText={(v) => update(i, 'drug', v)} placeholder="Drug name" placeholderTextColor={colors.muted} className="bg-slate-50 rounded-lg px-3 py-2.5 text-ink border border-line mb-2" />
             <View className="flex-row gap-2">
-              <TextInput value={it.dose} onChangeText={(v) => update(i, 'dose', v)} placeholder="Dose" placeholderTextColor={colors.muted} className="flex-1 bg-cream rounded-lg px-3 py-2.5 text-ink border border-line" />
-              <TextInput value={it.frequency} onChangeText={(v) => update(i, 'frequency', v)} placeholder="Freq (TDS)" placeholderTextColor={colors.muted} className="flex-1 bg-cream rounded-lg px-3 py-2.5 text-ink border border-line" />
-              <TextInput value={it.duration} onChangeText={(v) => update(i, 'duration', v)} placeholder="Days" placeholderTextColor={colors.muted} className="flex-1 bg-cream rounded-lg px-3 py-2.5 text-ink border border-line" />
+              <TextInput value={it.dose} onChangeText={(v) => update(i, 'dose', v)} placeholder="Dose" placeholderTextColor={colors.muted} className="flex-1 bg-slate-50 rounded-lg px-3 py-2.5 text-ink border border-line" />
+              <TextInput value={it.frequency} onChangeText={(v) => update(i, 'frequency', v)} placeholder="Freq (TDS)" placeholderTextColor={colors.muted} className="flex-1 bg-slate-50 rounded-lg px-3 py-2.5 text-ink border border-line" />
+              <TextInput value={it.duration} onChangeText={(v) => update(i, 'duration', v)} placeholder="Days" placeholderTextColor={colors.muted} className="flex-1 bg-slate-50 rounded-lg px-3 py-2.5 text-ink border border-line" />
             </View>
           </Card>
         ))}

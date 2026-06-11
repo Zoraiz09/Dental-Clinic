@@ -8,6 +8,7 @@ import { colors } from '../../theme/colors';
 import { Avatar, Button, Card, IconButton, Pill } from '../../components/ui';
 import { listStaff } from '../../api/queries';
 import { createStaff } from '../../api/mutations';
+import { qk, invalidate } from '../../lib/queryKeys';
 import { EmploymentType, Specialty, UserRole } from '../../types/models';
 
 export default function CreateStaffScreen({ route, navigation }: any) {
@@ -43,7 +44,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
       { text: 'Cancel', style: 'cancel' as const },
     ]);
 
-  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: listStaff });
+  const { data: staff = [] } = useQuery({ queryKey: qk.staff(), queryFn: listStaff });
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => createStaff({
@@ -55,8 +56,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
       share_pct: role === 'DOCTOR' ? Number(share) || 0 : undefined,
     }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['staff'] });
-      qc.invalidateQueries({ queryKey: ['providers'] });
+      invalidate(qc, 'staff');
       Alert.alert('Account created', `${role === 'DOCTOR' ? 'Doctor' : 'Receptionist'} can now sign in with the email & password you set.`);
       setF({ full_name: '', email: '', phone: '', password: '', title: '' });
       setShare('');
@@ -99,7 +99,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
                 <Ionicons name="camera-outline" size={28} color={colors.forest[500]} />
               </View>
             )}
-            <View className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-forest-600 items-center justify-center border-2 border-cream">
+            <View className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-forest-600 items-center justify-center border-2 border-white">
               <Ionicons name={photo ? 'pencil' : 'add'} size={14} color="#fff" />
             </View>
           </Pressable>
@@ -118,7 +118,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
 
             {/* Field / specialty */}
             <Text className="text-xs font-semibold text-ink mb-2">Field</Text>
-            <View className="flex-row bg-cream rounded-xl p-1 border border-line mb-4">
+            <View className="flex-row bg-white rounded-xl p-1 border border-line mb-4">
               {(['DENTAL', 'AESTHETIC'] as Specialty[]).map((s) => {
                 const on = specialty === s;
                 return (
@@ -132,7 +132,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
 
             {/* In-house / visiting */}
             <Text className="text-xs font-semibold text-ink mb-2">Employment</Text>
-            <View className="flex-row bg-cream rounded-xl p-1 border border-line mb-4">
+            <View className="flex-row bg-white rounded-xl p-1 border border-line mb-4">
               {([['IN_HOUSE', 'In-house'], ['VISITING', 'Visiting']] as [EmploymentType, string][]).map(([k, label]) => {
                 const on = employment === k;
                 return (
@@ -145,7 +145,7 @@ export default function CreateStaffScreen({ route, navigation }: any) {
 
             {/* Share % */}
             <Text className="text-xs font-semibold text-ink mb-2">Revenue share (%)</Text>
-            <View className="flex-row items-center bg-cream rounded-xl px-3 border border-line">
+            <View className="flex-row items-center bg-slate-50 rounded-xl px-3 border border-line">
               <Ionicons name="pie-chart-outline" size={18} color={colors.muted} />
               <TextInput value={share} onChangeText={setShare} placeholder="e.g. 50" keyboardType="numeric" placeholderTextColor={colors.muted} className="flex-1 py-3 px-2 text-ink" />
               <Text className="text-muted">%</Text>

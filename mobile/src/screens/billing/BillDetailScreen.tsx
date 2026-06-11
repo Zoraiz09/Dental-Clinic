@@ -9,16 +9,17 @@ import { rs, shortDate } from '../../lib/format';
 import { getPatient, listBills } from '../../api/queries';
 import { recordPayment } from '../../api/mutations';
 import { shareInvoicePdf } from '../../lib/pdf';
+import { qk, invalidate } from '../../lib/queryKeys';
 import { BillStatus } from '../../types/models';
 
-const tone: Record<BillStatus, 'forest' | 'warning' | 'danger' | 'neutral'> = {
-  PAID: 'forest', PARTIAL: 'warning', PENDING: 'danger', CANCELLED: 'neutral',
+const tone: Record<BillStatus, 'mint' | 'forest' | 'warning' | 'danger' | 'neutral'> = {
+  PAID: 'mint', PARTIAL: 'warning', PENDING: 'danger', CANCELLED: 'neutral',
 };
 
 export default function BillDetailScreen({ route, navigation }: any) {
   const billId: string = route.params?.billId;
   const qc = useQueryClient();
-  const { data: bills, isLoading } = useQuery({ queryKey: ['bills'], queryFn: listBills });
+  const { data: bills, isLoading } = useQuery({ queryKey: qk.bills(), queryFn: listBills });
   const bill = bills?.find((b) => b.id === billId);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<'cash' | 'card'>('cash');
@@ -36,8 +37,7 @@ export default function BillDetailScreen({ route, navigation }: any) {
   const { mutate, isPending } = useMutation({
     mutationFn: (amt: number) => recordPayment(billId, amt, method),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['bills'] });
-      qc.invalidateQueries({ queryKey: ['p-bills'] });
+      invalidate(qc, 'bills');
       setAmount('');
       Alert.alert('Payment recorded', `Paid by ${method}.`);
     },
@@ -105,7 +105,7 @@ export default function BillDetailScreen({ route, navigation }: any) {
 
             {/* Method: cash / card */}
             <Text className="text-xs font-semibold text-ink mb-2">Payment method</Text>
-            <View className="flex-row bg-cream rounded-xl p-1 border border-line mb-3">
+            <View className="flex-row bg-white rounded-xl p-1 border border-line mb-3">
               {(['cash', 'card'] as const).map((m) => {
                 const on = method === m;
                 return (
@@ -117,7 +117,7 @@ export default function BillDetailScreen({ route, navigation }: any) {
               })}
             </View>
 
-            <View className="flex-row items-center bg-cream rounded-xl px-3 border border-line">
+            <View className="flex-row items-center bg-slate-50 rounded-xl px-3 border border-line">
               <Text className="text-muted">Rs</Text>
               <TextInput
                 value={amount}

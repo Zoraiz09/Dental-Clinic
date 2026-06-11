@@ -4,7 +4,7 @@
 export type UserRole = 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST';
 export type Specialty = 'DENTAL' | 'AESTHETIC';
 export type AppointmentStatus =
-  | 'BOOKED' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  | 'BOOKED' | 'CONFIRMED' | 'CHECKED_IN' | 'AWAITING_PAYMENT' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type BillStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'CANCELLED';
 export type PrescriptionType = 'DENTAL' | 'FACIAL';
 export type StockMovementType = 'ADD' | 'DEDUCT' | 'ADJUST';
@@ -120,6 +120,8 @@ export interface Prescription {
   advice: string | null;
   follow_up_date: string | null;
   created_at: string;
+  // joined convenience (follow-up alerts show the patient's name)
+  patient?: { full_name: string } | null;
 }
 
 export interface Bill {
@@ -168,6 +170,58 @@ export interface Expense {
   receipt_url: string | null;
   spent_at: string;
   created_at?: string;   // full timestamp (date + time) the entry was recorded
+  created_by?: string | null;            // profile id of whoever entered it
+  creator?: { full_name: string } | null; // joined name (for admin notifications)
+}
+
+export interface AppNotification {
+  id: string;
+  recipient_id: string;
+  type: string;              // CHECKED_IN | AWAITING_PAYMENT | CANCELLED | PAYMENT_COLLECTED | PAYMENT_PARTIAL | EXPENSE_ADDED | LOW_STOCK
+  title: string;
+  body: string | null;
+  data: Record<string, any> | null;  // routing payload
+  read_at: string | null;
+  created_at: string;
+}
+
+/** One-row KPI snapshot from get_dashboard_kpis (migration 0013). */
+export interface DashboardKpis {
+  revenue_today: number;
+  items_purchased_today: number;
+  items_used_today: number;
+  appts_today: number;
+  checked_in: number;
+  pending_bills: number;
+  low_stock: number;
+  new_patients_today: number;
+  total_patients: number;
+  outstanding: number;
+  expenses_total: number;
+  week_revenue: number;
+}
+
+/** One bucket of the admin trend charts (get_trend_series). */
+export interface TrendPoint {
+  bucket: string;          // bucket start date, YYYY-MM-DD
+  revenue: number;
+  patients_seen: number;
+  expenses: number;
+}
+
+/** Per-doctor share totals for Reports (get_provider_shares). */
+export interface ProviderShare {
+  provider_id: string;
+  full_name: string;
+  title: string | null;
+  share: number;
+}
+
+/** Outstanding balance grouped by patient (get_outstanding_by_patient). */
+export interface OutstandingBalance {
+  patient_id: string;
+  full_name: string;
+  due: number;
 }
 
 export interface DoctorEarnings {

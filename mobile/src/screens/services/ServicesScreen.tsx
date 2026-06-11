@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { colors } from '../../theme/colors';
-import { Button, Card, IconButton, Pill } from '../../components/ui';
+import { Button, Card, EmptyState, IconButton, Pill } from '../../components/ui';
+import { shadows } from '../../theme/elevation';
 import { rs } from '../../lib/format';
 import { listAppointmentTypes } from '../../api/queries';
 import { createAppointmentType, updateAppointmentType, deleteAppointmentType, AppointmentTypeInput } from '../../api/mutations';
 import { confirmAsync } from '../../lib/confirm';
+import { qk, invalidate } from '../../lib/queryKeys';
 import { Field, Sheet } from '../inventory/InventoryScreen';
 import { AppointmentType, Specialty } from '../../types/models';
 
@@ -16,16 +18,14 @@ type Filter = 'ALL' | Specialty;
 
 export default function ServicesScreen({ navigation }: any) {
   const qc = useQueryClient();
-  const { data = [], isLoading } = useQuery({ queryKey: ['apptTypes'], queryFn: listAppointmentTypes });
+  const { data = [], isLoading } = useQuery({ queryKey: qk.apptTypes(), queryFn: listAppointmentTypes });
   const [filter, setFilter] = useState<Filter>('ALL');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<AppointmentType | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ['apptTypes'] });
-    qc.invalidateQueries({ queryKey: ['appointments'] });
-  };
+  // Editing a service can change names/prices shown on existing appointments.
+  const refresh = () => invalidate(qc, 'services');
 
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -87,13 +87,13 @@ export default function ServicesScreen({ navigation }: any) {
             </Card>
           </Pressable>
         )}
-        ListEmptyComponent={!isLoading ? <Text className="text-center text-muted mt-10">No services match</Text> : null}
+        ListEmptyComponent={<EmptyState icon="medical-outline" title="No services" hint={search ? `No results for "${search}"` : 'Add your first service to start booking appointments.'} />}
       />
 
       <Pressable
         onPress={() => setAdding(true)}
         className="absolute right-6 bottom-6 h-14 w-14 rounded-full bg-forest-600 items-center justify-center active:opacity-80"
-        style={{ shadowColor: '#5E472E', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}
+        style={shadows.fab}
       >
         <Ionicons name="add" size={28} color="#fff" />
       </Pressable>

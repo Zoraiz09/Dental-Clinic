@@ -10,15 +10,16 @@ import { Avatar, Button, IconButton } from '../../components/ui';
 import { listAppointmentTypes, listPatients, listProviders, listTimeSlots } from '../../api/queries';
 import { bookAppointment } from '../../api/mutations';
 import { notify } from '../../lib/confirm';
+import { qk, invalidate } from '../../lib/queryKeys';
 import { Specialty, TimeSlot } from '../../types/models';
 
 export default function BookAppointmentScreen({ navigation, route }: any) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const { data: types = [] } = useQuery({ queryKey: ['apptTypes'], queryFn: listAppointmentTypes });
-  const { data: providers = [] } = useQuery({ queryKey: ['providers'], queryFn: listProviders });
-  const { data: slots = [] } = useQuery({ queryKey: ['slots'], queryFn: () => listTimeSlots() });
-  const { data: patients = [] } = useQuery({ queryKey: ['patients', ''], queryFn: () => listPatients('') });
+  const { data: types = [] } = useQuery({ queryKey: qk.apptTypes(), queryFn: listAppointmentTypes });
+  const { data: providers = [] } = useQuery({ queryKey: qk.providers(), queryFn: listProviders });
+  const { data: slots = [] } = useQuery({ queryKey: qk.slots(), queryFn: () => listTimeSlots() });
+  const { data: patients = [] } = useQuery({ queryKey: qk.patients(''), queryFn: () => listPatients('') });
 
   const dates = useMemo(() => Array.from({ length: 7 }, (_, i) => dayjs().add(i, 'day')), []);
   const [dateIdx, setDateIdx] = useState(1);
@@ -64,8 +65,7 @@ export default function BookAppointmentScreen({ navigation, route }: any) {
       });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['appointments'] });
-      qc.invalidateQueries({ queryKey: ['slots'] });
+      invalidate(qc, 'appointments');
       notify('Booked', 'Appointment scheduled successfully.');
       navigation.goBack();
     },
@@ -237,7 +237,7 @@ export default function BookAppointmentScreen({ navigation, route }: any) {
       </ScrollView>
 
       {/* Sticky CTA */}
-      <View className="px-5 pt-3 pb-6 bg-cream border-t border-line">
+      <View className="px-5 pt-3 pb-6 bg-white border-t border-line">
         <Button title={t('appointments.confirm')} variant="primary" icon="calendar" loading={isPending} disabled={!canBook} className={!canBook ? 'opacity-50' : ''} onPress={onConfirm} />
       </View>
 
@@ -252,7 +252,7 @@ function CustomTimeModal({ onClose, onAdd }: { onClose: () => void; onAdd: (t: s
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable style={{ flex: 1 }} className="bg-black/40" onPress={onClose} />
-        <View className="bg-cream rounded-t-3xl px-5 pt-4 pb-8">
+        <View className="bg-white rounded-t-3xl px-5 pt-4 pb-8" style={{ borderTopWidth: 1, borderTopColor: '#E2E8E6' }}>
           <View className="items-center mb-3"><View className="h-1 w-10 rounded-full bg-line" /></View>
           <Text className="text-lg font-bold text-ink mb-1">Custom time slot</Text>
           <Text className="text-xs text-muted mb-4">Enter a time (e.g. 2:30 PM or 14:30)</Text>

@@ -1,43 +1,47 @@
 // Mirror of tailwind tokens for use in non-className contexts
 // (navigation theme, status bar, SVG fills, gradients, shadows).
-// Creamy-caramel palette.
+// Single source of truth is src/theme/palette.js — this file re-exports the
+// same shape so every existing import stays byte-identical.
+const p = require('./palette');
+
 export const colors = {
-  forest: {
-    50: '#FAF3E9', 100: '#F1E3CC', 200: '#E4C9A1', 300: '#D2A86E',
-    400: '#BD8743', 500: '#9C6A30', 600: '#80531F', 700: '#674319',
-    800: '#4E3213', 900: '#35210C',
+  forest: p.forest as {
+    50: string; 100: string; 200: string; 300: string; 400: string;
+    500: string; 600: string; 700: string; 800: string; 900: string;
   },
-  taupe: { 100: '#EDE4D7', 300: '#C7B095', 500: '#8A6B49', 700: '#5E472E' },
-  cream: '#F6EEE3',
-  sand: '#EADDC9',
-  surface: '#FFFDF8',
-  ink: '#36281C',
-  muted: '#6E5C4A',
-  line: '#E6D7C3',
-  white: '#FFFFFF',
-  danger: '#BB4A2C',
-  warning: '#B97E18',
-  success: '#6E8A4F',
-  info: '#5E78A8',
+  taupe: p.taupe as { 100: string; 300: string; 500: string; 700: string },
+  cream:   p.cream   as string,
+  sand:    p.sand    as string,
+  surface: p.surface as string,
+  ink:     p.ink     as string,
+  muted:   p.muted   as string,
+  line:    p.line    as string,
+  white:   '#FFFFFF',
+  danger:  p.danger  as string,
+  warning: p.warning as string,
+  success: p.success as string,
+  info:    p.info    as string,
 };
 
-// Soft caramel-cream gradient behind the Sign In screen.
-export const authGradient = ['#F7E9CF', '#F1E2D2', '#E7D2B0'] as const;
+// Honest alias — matches tailwind.config.js `primary` alias.
+export const primary = colors.forest;
 
-// Warm shadow tint used across cards & floating buttons.
-export const shadowTint = '#5E472E';
+// Gradient behind the Sign-In screen (calm off-white → soft teal).
+export const authGradient = ['#F8FAF9', '#ECF6F3', '#D8EEE8'] as const;
 
-// Rich caramel gradient for hero / summary cards.
-export const caramelGradient = ['#6F4622', '#9C6A30', '#BD8743'] as const;
+// Shadow tint (used in screens that still need an inline shadowColor).
+export const shadowTint = '#0F172A';
 
-// Soft warm backdrop behind the whole app (so frosted glass reads).
-export const appBackdrop = ['#FBF2E4', '#F3E6D2', '#ECD8BC'] as const;
+// Deep teal gradient for hero / summary cards (the ONE permitted gradient).
+export const caramelGradient = ['#134E4A', '#0F766E', '#0D9488'] as const;
 
-// Glassmorphism tokens.
+// Near-flat off-white backdrop behind the whole app.
+export const appBackdrop = ['#F8FAF9', '#F5F8F7', '#EFF4F2'] as const;
+
+// Surface tokens (glass is now solid-white; kept for structural compatibility).
 export const glass = {
-  fill: 'rgba(255,253,248,0.55)',      // translucent ivory overlay
-  fillStrong: 'rgba(255,253,248,0.72)',
-  border: 'rgba(255,255,255,0.65)',    // light reflective edge
-  blur: 24,
+  fill:      '#FFFFFF',
+  fillStrong:'#FFFFFF',
+  border:    p.line as string, // #E2E8E6 hairline
+  blur:      0,               // BlurView no longer used; kept for prop compat
 };
-
