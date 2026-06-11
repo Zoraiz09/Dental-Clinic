@@ -13,7 +13,7 @@ import { notify } from '../../lib/confirm';
 import { qk, invalidate } from '../../lib/queryKeys';
 import { Specialty, ToothChart as ToothChartData } from '../../types/models';
 
-const AREAS = ['Glabella', 'Forehead', 'Crow’s Feet', 'Cheeks', 'Lips', 'Jawline', 'Nasolabial', 'Chin'];
+const AREAS = ['Glabella', 'Forehead', "Crow's Feet", 'Cheeks', 'Lips', 'Jawline', 'Nasolabial', 'Chin'];
 
 export default function EMRChartingScreen({ route, navigation }: any) {
   const patientId: string = route.params?.patientId;

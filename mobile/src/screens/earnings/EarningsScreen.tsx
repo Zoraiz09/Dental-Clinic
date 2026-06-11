@@ -55,8 +55,8 @@ export default function EarningsScreen() {
 
   if (!providerId) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: ‘transparent’ }} edges={[‘top’]}>
-        <EmptyState icon="cash-outline" title="No provider record" hint="Your account isn’t linked to a provider record yet. Ask your admin." />
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+        <EmptyState icon="cash-outline" title="No provider record" hint="Your account isn't linked to a provider record yet. Ask your admin." />
       </SafeAreaView>
     );
   }

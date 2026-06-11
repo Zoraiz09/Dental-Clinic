@@ -630,7 +630,7 @@ function NotificationsSheet({ items, hasUnread, onMarkAll, onClose }: {
           </View>
         </View>
         {items.length === 0 ? (
-          <Text className="text-muted text-center py-6">You’re all caught up 🎉</Text>
+          <Text className="text-muted text-center py-6">You're all caught up 🎉</Text>
         ) : (
           <ScrollView style={{ maxHeight: 420 }}>
             {items.map((n) => (
